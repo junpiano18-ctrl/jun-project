@@ -70,13 +70,25 @@ export function LayerPinGroup({ layer, pins }: Props) {
             key={`${layer}-${p.routeId}`}
             position={[p.lat, p.lng]}
             icon={makeIcon(layer, color, vacant)}
+            eventHandlers={{
+              // 모바일 ghost click — touchend 후 발생하는 click이 map으로 전파돼
+              // popup이 즉시 닫히는 현상 차단.
+              click: (e) => {
+                L.DomEvent.stopPropagation(e.originalEvent);
+              },
+            }}
           >
             <Tooltip direction="top" offset={[0, -8]}>
               <strong>{p.name}</strong>
               {vacant && <span style={{ color: "#a1a1aa" }}> · 현재 공석</span>}{" "}
               · {p.districtName}
             </Tooltip>
-            <Popup>
+            <Popup
+              // closeOnClick=true(기본)면 map click 때 닫힘. ghost click과 충돌.
+              // 닫기는 ✕ 버튼이나 다른 핀 탭(autoClose=true 기본)으로만.
+              closeOnClick={false}
+              autoClose={true}
+            >
               <PoliticianCard pin={p} />
             </Popup>
           </Marker>
