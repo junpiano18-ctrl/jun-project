@@ -1,0 +1,246 @@
+// 우리동네정치 / 정치인 지도 — Prisma schema
+// Prisma 7.x + Supabase Postgres
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────────────────
+
+enum PositionType {
+  NATIONAL_ASSEMBLY
+  METRO_GOVERNOR
+  LOCAL_GOVERNOR
+  METRO_COUNCIL
+  LOCAL_COUNCIL
+  EDUCATION_SUPERINTENDENT
+}
+
+enum ElectedAs {
+  CONSTITUENCY
+  PROPORTIONAL
+}
+
+enum PoliticianTermStatus {
+  ACTIVE     // 현직
+  DISMISSED  // 의원직 상실
+  SUSPENDED  // 직무정지
+  DECEASED   // 사망
+}
+
+enum BillStatus {
+  PENDING    // 심사 중 (계류) — PROC_RESULT null
+  PASSED     // 통과 (원안가결/수정가결)
+  REJECTED   // 처리 안 됨 (부결/폐기/철회/대안반영폐기/임기만료폐기)
+}
+
+// ──────────────────────────────────────────────────────────
+// Reference data
+// ──────────────────────────────────────────────────────────
+
+model Party {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  shortName String?
+  color     String
+  terms     PoliticianTerm[]
+}
+
+model Term {
+  id           String           @id @default(cuid())
+  positionType PositionType
+  number       Int
+  startDate    DateTime
+  endDate      DateTime
+  terms        PoliticianTerm[]
+
+  @@unique([positionType, number])
+}
+
+// ──────────────────────────────────────────────────────────
+// Geography
+// ──────────────────────────────────────────────────────────
+
+model AdminRegion {
+  code       String           @id
+  name       String
+  level      Int
+  parentCode String?
+  geometry   Json
+  districts  DistrictRegion[]
+}
+
+model District {
+  id             String           @id @default(cuid())
+  positionType   PositionType
+  name           String
+  fullName       String
+  isProportional Boolean          @default(false)
+  centerLat      Float?
+  centerLng      Float?
+  regions        DistrictRegion[]
+  terms          PoliticianTerm[]
+
+  @@unique([positionType, name])
+  @@index([positionType])
+}
+
+model DistrictRegion {
+  districtId String
+  regionCode String
+  district   District    @relation(fields: [districtId], references: [id])
+  region     AdminRegion @relation(fields: [regionCode], references: [code])
+
+  @@id([districtId, regionCode])
+}
+
+// ──────────────────────────────────────────────────────────
+// People
+// ──────────────────────────────────────────────────────────
+
+model Politician {
+  id        String           @id @default(cuid())
+  name      String
+  hanjaName String?
+  birthYear Int?
+  gender    String?
+  photoUrl  String?
+
+  // 외부 시스템 ID — 출처별로 다르므로 수동 매핑 가능
+  monaCd   String? @unique // 열린국회정보
+  necId    String? @unique // 중앙선관위
+  ethicsId String? @unique // 공직윤리시스템
+
+  // 열린국회 의원 정보(nwvrqwxyaytdsfvhu)의 MEM_TITLE — 주요 학력·경력 통합 텍스트
+  careerText String?
+
+  terms  PoliticianTerm[]
+  assets Asset[]
+  bills  Bill[]
+
+  @@index([name])
+}
+
+// 의원이 대표발의한 법안. 한 의원의 22대 임기 법안만 sync 대상.
+model Bill {
+  id           String     @id @default(cuid())
+  billId       String     @unique // 열린국회 PRC_xxx 식 식별자
+  politicianId String
+  billName     String
+  billStatus   BillStatus @default(PENDING)
+  proposedAt   DateTime?
+  billUrl      String
+  summary      String?    // Claude API 쉬운 말 요약 (ANTHROPIC_API_KEY 생기면 채움)
+
+  politician Politician @relation(fields: [politicianId], references: [id])
+
+  @@index([politicianId])
+  @@index([proposedAt])
+}
+
+// 한 정치인의 한 임기 — 통계·공약·표결의 중심 단위
+model PoliticianTerm {
+  id            String    @id @default(cuid())
+  politicianId  String
+  termId        String
+  districtId    String
+  partyId       String?
+  positionTitle String
+  electedAs     ElectedAs
+  electedDate   DateTime
+  status        PoliticianTermStatus @default(ACTIVE)
+
+  // 비싼 계산값 캐싱 — cron으로 갱신
+  attendanceRate         Float?
+  pledgeFulfillRate      Float?
+  billProposedCount      Int?    // 대표발의 법안 수 (현 임기)
+  billPassedCount        Int?    // 그중 본회의 가결 수
+  plenaryVoteSessionCount Int?   // 현 임기 본회의 표결 총 횟수 (모수)
+  plenaryVoteAttendCount  Int?   // 그중 참여 횟수
+  committees             Json?   // 현 임기 위원회 이력 [{name, start, end}]
+
+  politician  Politician   @relation(fields: [politicianId], references: [id])
+  term        Term         @relation(fields: [termId], references: [id])
+  district    District     @relation(fields: [districtId], references: [id])
+  party       Party?       @relation(fields: [partyId], references: [id])
+  pledges     Pledge[]
+  votes       Vote[]
+  attendances Attendance[]
+
+  @@unique([politicianId, termId])
+  @@index([districtId])
+  @@index([partyId])
+}
+
+// ──────────────────────────────────────────────────────────
+// Content
+// ──────────────────────────────────────────────────────────
+
+model Pledge {
+  id               String    @id @default(cuid())
+  politicianTermId String
+  category         String?
+  title            String
+  originalText     String
+  easySummary      String? // Claude API로 생성한 중학생 눈높이 요약
+  summaryModel     String?
+  summaryUpdatedAt DateTime?
+  status           String?
+
+  politicianTerm PoliticianTerm @relation(fields: [politicianTermId], references: [id])
+
+  @@index([politicianTermId])
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  politicianId String
+  year         Int
+  totalKrw     BigInt   // 현재가액 (천원 단위)
+  changeKrw    BigInt?  // 증감액 (천원). 양수 증가, 음수 감소
+  landKrw      BigInt?  // 토지
+  buildingKrw  BigInt?  // 건물
+  depositKrw   BigInt?  // 예금
+  stockKrw     BigInt?  // 주식
+  detail       Json?
+  source       String
+  disclosedAt  DateTime?
+
+  politician Politician @relation(fields: [politicianId], references: [id])
+
+  @@unique([politicianId, year])
+}
+
+model Vote {
+  id               String   @id @default(cuid())
+  politicianTermId String
+  billId           String
+  billName         String
+  voteDate         DateTime
+  result           String
+
+  politicianTerm PoliticianTerm @relation(fields: [politicianTermId], references: [id])
+
+  @@index([politicianTermId])
+  @@index([billId])
+}
+
+model Attendance {
+  id               String   @id @default(cuid())
+  politicianTermId String
+  date             DateTime
+  sessionName      String
+  status           String
+
+  politicianTerm PoliticianTerm @relation(fields: [politicianTermId], references: [id])
+
+  @@index([politicianTermId])
+  @@index([date])
+}

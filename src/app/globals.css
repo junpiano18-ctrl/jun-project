@@ -1,4 +1,14 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
+/* Leaflet MapContainer는 부모에 명시적 height가 필요하다.
+   html/body까지 height 체인이 끊기지 않게 보장. */
+html,
+body {
+  height: 100%;
+}
 
 :root {
   --background: #ffffff;
@@ -23,4 +33,219 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 지도 핀 popup — 다크 배경 + 당색 포인트만. 데이터 없는 줄은 렌더 안 함. */
+.pin-card {
+  min-width: 260px;
+  max-width: 280px;
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(15, 15, 15, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #f4f4f5;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.pin-card-vacant {
+  background: rgba(15, 15, 15, 0.92);
+}
+.pin-card-status {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.85);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+}
+.pin-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #27272a;
+  margin-bottom: 14px;
+}
+.pin-card-id {
+  min-width: 0;
+  flex: 1;
+  padding-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pin-card-name {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  line-height: 1.2;
+}
+.pin-card-party {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.pin-card-district {
+  font-size: 12px;
+  color: #a1a1aa;
+  letter-spacing: 0.01em;
+}
+.pin-card-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pin-card-fact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #e4e4e7;
+}
+.pin-card-fact-icon {
+  font-size: 14px;
+  flex: none;
+  width: 18px;
+  text-align: center;
+}
+.pin-card-fact-label {
+  color: #a1a1aa;
+  font-size: 12px;
+  flex: 1;
+}
+.pin-card-fact-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.pin-card-link {
+  display: block;
+  text-align: center;
+  padding: 10px 0;
+  background: #f4f4f5;
+  color: #0f0f0f;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.pin-card-link:hover {
+  background: #fff;
+  text-decoration: none;
+}
+/* PoliticianPhoto 안의 출처 텍스트 — 다크 배경에 어울리는 회색. */
+.pin-card-header p {
+  color: #71717a !important;
+}
+/* Leaflet popup container 자체의 흰 배경/패딩 제거 */
+.leaflet-popup-content-wrapper:has(.pin-card) {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 12px;
+}
+.leaflet-popup-content:has(.pin-card) {
+  margin: 0;
+  width: auto !important;
+}
+.leaflet-popup-tip-container:has(.pin-card) {
+  display: none;
+}
+.leaflet-popup-close-button:has(~ .leaflet-popup-content .pin-card) {
+  color: #fff !important;
+  font-size: 22px !important;
+  top: 8px !important;
+  right: 8px !important;
+}
+
+/* 의원 핀 — DivIcon 안 SVG. 직급별 모양 + 정당 색. */
+.politician-pin {
+  background: transparent !important;
+  border: none !important;
+}
+.politician-pin svg {
+  display: block;
+}
+
+/* 클러스터 — 정당/직급 모양과 혼동되지 않게 흰 배경 + 검정 테두리 + 검정 숫자.
+   핀(20~24px)보다 큼(40px)으로 시각적 구별. */
+.politician-cluster {
+  background: transparent !important;
+  border: none !important;
+}
+.politician-cluster__bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #18181b;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  color: #18181b;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.politician-cluster__bubble:hover {
+  background: #fafafa;
+}
+
+/* 동해 / 독도 라벨 — 타일 위 반투명 오버레이. 사용자 인터랙션 안 받음. */
+.sea-label-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.sea-label {
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  color: #1e3a5f;
+  text-shadow:
+    0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 6px rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.sea-label__main {
+  font-size: 15px;
+  font-weight: 600;
+}
+.sea-label__main--sm {
+  font-size: 12px;
+}
+.sea-label__sub {
+  font-size: 10px;
+  font-style: italic;
+  opacity: 0.85;
+  letter-spacing: 0.04em;
+}
+.sea-label--island {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+}
+.sea-label__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1e3a5f;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  flex: none;
 }
