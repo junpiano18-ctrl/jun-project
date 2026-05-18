@@ -21,10 +21,34 @@ function formatAsset(thousand: number | null | undefined): string | null {
   return `${(thousand / 10_000).toFixed(0)}백만원`;
 }
 
+// 직급별 지역구 라벨. 데이터 비어있으면 빈 문자열.
+//   국회의원   → "서울 마포구을" (그대로)
+//   광역단체장 → "서울특별시" (그대로)
+//   교육감     → "서울특별시 교육감"
+//   기초단체장 → "마포구" (시도명 제거)
+function districtLabel(pin: PoliticianPin): string {
+  const name = (pin.districtName ?? "").trim();
+  if (!name) return "";
+  switch (pin.layer) {
+    case "edu":
+      return `${name} 교육감`;
+    case "localGov": {
+      // 마지막 토큰만 (예: "서울특별시 종로구" → "종로구")
+      const parts = name.split(/\s+/);
+      return parts[parts.length - 1] ?? name;
+    }
+    case "metroGov":
+    case "national":
+    default:
+      return name;
+  }
+}
+
 // 지도 popup 카드. 데이터 없는 줄은 아예 렌더 안 함.
 export function PoliticianCard({ pin }: { pin: PoliticianPin }) {
   const color = pin.party?.color ?? "#888888";
   const vacant = Boolean(pin.status) && pin.status !== "ACTIVE";
+  const district = districtLabel(pin);
 
   // 출석률 = attend/session 비율을 % 표현. 본회의 데이터 모두 있어야 표시.
   const attendDisplay =
@@ -67,7 +91,7 @@ export function PoliticianCard({ pin }: { pin: PoliticianPin }) {
           >
             {pin.party?.shortName ?? pin.party?.name ?? "무소속"}
           </span>
-          <div className="pin-card-district">{pin.districtName}</div>
+          {district && <div className="pin-card-district">{district}</div>}
         </div>
       </div>
 
