@@ -47,6 +47,10 @@ export default function KoreaMap({ pins, proportionalTotal }: Props) {
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const allowed = useMemo(() => allowedAtZoom(zoom), [zoom]);
 
+  // 마커 hover 시에도 그 지역구 폴리곤이 강조되도록 hover 상태 공유.
+  // 마커가 폴리곤보다 위에 그려져 마커 위로는 polygon mouseover가 발화하지 않는 문제 해결.
+  const [hoveredDistrictKey, setHoveredDistrictKey] = useState<string | null>(null);
+
   // 사용자 체크박스가 가시성의 master — 체크박스 OFF면 무조건 사라짐.
   // 줌 마스킹은 LayerControl의 hint("줌 조정")로만 안내, 실제 표시는 막지 않음.
   const visible = enabled;
@@ -80,14 +84,25 @@ export default function KoreaMap({ pins, proportionalTotal }: Props) {
         <TileLayer attribution={TILE.attribution} url={TILE.url} />
         <ZoomTracker onZoom={setZoom} />
         <SeaLabels />
-        <DistrictBoundaries pins={pins} />
+        <DistrictBoundaries
+          pins={pins}
+          hoveredKey={hoveredDistrictKey}
+          onHover={setHoveredDistrictKey}
+        />
         <FocusedPopup pins={pins} onFocus={onFocus} />
 
         {/* 직급별 핀 — 각 layer가 별도 LayerPinGroup. visible.has(layer)=false이면 컴포넌트 자체 unmount.
            leaflet 레벨에서 marker remove가 확실히 동작 → 체크박스 OFF 시 핀이 100% 사라짐. */}
         {ALL_LAYER_KEYS.map((key) =>
           visible.has(key) ? (
-            <LayerPinGroup key={key} layer={key} pins={pins} />
+            <LayerPinGroup
+              key={key}
+              layer={key}
+              pins={pins}
+              onHoverDistrict={
+                key === "national" ? setHoveredDistrictKey : undefined
+              }
+            />
           ) : null,
         )}
       </MapContainer>

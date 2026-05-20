@@ -10,6 +10,7 @@ export type SearchPoliticianResult = {
 };
 
 export type SearchRegionResult = {
+  admCd: string; // 8자리 행정동 코드
   admNm: string; // "서울특별시 마포구 합정동"
   sidonm: string;
   sggnm: string;
@@ -103,6 +104,7 @@ export async function searchByRegion(q: string): Promise<SearchRegionResult[]> {
           }
         : null;
     return {
+      admCd: e.adm_cd,
       admNm: e.adm_nm,
       sidonm: e.sidonm,
       sggnm: e.sggnm,

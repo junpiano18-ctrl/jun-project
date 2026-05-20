@@ -102,7 +102,7 @@ export default async function PoliticianPage({
     <div className="min-h-screen bg-[#0f0f0f] text-zinc-100">
       <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
         <Link
-          href="/"
+          href="/map"
           className="mb-5 inline-flex items-center text-sm text-zinc-500 hover:text-zinc-200"
         >
           ← 지도로 돌아가기

@@ -21,7 +21,7 @@ export default async function RegionPage({
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-10">
       <Link
-        href="/"
+        href="/map"
         className="mb-6 inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
       >
         ← 지도로 돌아가기

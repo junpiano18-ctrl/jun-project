@@ -4,6 +4,7 @@ import L from "leaflet";
 import { Marker, Popup, Tooltip } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { PoliticianCard } from "@/components/politician/PoliticianCard";
+import { normalizeDbDistrict } from "@/lib/geo/district-key";
 import { LAYERS, type LayerKey } from "@/lib/map/layers";
 import { makePinHtml } from "@/lib/map/pin-icon";
 import type { PoliticianPin } from "@/lib/queries/politician-pins";
@@ -14,6 +15,9 @@ import type { PoliticianPin } from "@/lib/queries/politician-pins";
 type Props = {
   layer: LayerKey;
   pins: PoliticianPin[];
+  // 마커 hover 시 DistrictBoundaries에 알려 같은 지역구 폴리곤을 강조하도록.
+  // national 레이어에만 의미가 있다 (다른 직급은 별도 폴리곤 없음).
+  onHoverDistrict?: (key: string | null) => void;
 };
 
 const iconCache = new Map<string, L.DivIcon>();
@@ -48,7 +52,7 @@ function makeClusterIcon() {
   };
 }
 
-export function LayerPinGroup({ layer, pins }: Props) {
+export function LayerPinGroup({ layer, pins, onHoverDistrict }: Props) {
   const layerPins = pins.filter((p) => p.layer === layer);
   if (layerPins.length === 0) return null;
 
@@ -65,6 +69,9 @@ export function LayerPinGroup({ layer, pins }: Props) {
         const vacant = Boolean(p.status) && p.status !== "ACTIVE";
         // 정당색 우선. 정당 없으면 무소속 회색.
         const color = p.party?.color ?? "#888888";
+        const districtKey = onHoverDistrict
+          ? normalizeDbDistrict(p.districtName)
+          : null;
         return (
           <Marker
             key={`${layer}-${p.routeId}`}
@@ -75,6 +82,12 @@ export function LayerPinGroup({ layer, pins }: Props) {
               // popup이 즉시 닫히는 현상 차단.
               click: (e) => {
                 L.DomEvent.stopPropagation(e.originalEvent);
+              },
+              mouseover: () => {
+                if (districtKey) onHoverDistrict?.(districtKey);
+              },
+              mouseout: () => {
+                if (districtKey) onHoverDistrict?.(null);
               },
             }}
           >

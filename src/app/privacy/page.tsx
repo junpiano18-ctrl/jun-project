@@ -8,7 +8,7 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <Link
-        href="/"
+        href="/map"
         className="mb-6 inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
       >
         ← 지도로 돌아가기

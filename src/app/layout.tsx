@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SearchBar } from "@/components/search/SearchBar";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 import { GlobalFooter } from "@/components/layout/GlobalFooter";
 import "./globals.css";
 
@@ -31,13 +30,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-        <header className="z-[1500] flex flex-col gap-3 border-b border-zinc-200 px-6 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
-          <Link href="/" className="flex items-baseline gap-2">
-            <span className="text-base font-bold tracking-tight">내머슴닷컴</span>
-            <span className="text-xs text-zinc-400">naemeosum.com</span>
-          </Link>
-          <SearchBar />
-        </header>
+        <SiteHeader />
         {children}
         <GlobalFooter />
       </body>

@@ -118,8 +118,8 @@ export function SearchBar() {
       return;
     }
 
-    // 이름 / 동네 검색 모두 → 메인 지도 focus. FocusedPopup이 flyTo + popup 처리.
-    router.push(`/?focus=${monaCd}`);
+    // 이름 / 동네 검색 모두 → 지도 focus. FocusedPopup이 flyTo + popup 처리.
+    router.push(`/map?focus=${monaCd}`);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
