@@ -40,6 +40,15 @@ function dateLabel(iso: string | null): string {
   return iso.replace(/-/g, ".");
 }
 
+// "2025.07.21" 형식. DateTime을 한국식 점 구분 날짜로.
+function formatKoreanDate(d: Date | string): string {
+  const date = d instanceof Date ? d : new Date(d);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}.${mm}.${dd}`;
+}
+
 export default async function PoliticianPage({
   params,
 }: PageProps<"/politicians/[monaCd]">) {
@@ -141,6 +150,15 @@ export default async function PoliticianPage({
                       ({politician.hanjaName})
                     </span>
                   )}
+                  {currentTerm?.additionalRole && (
+                    <span
+                      className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+                      style={{ backgroundColor: "#CA8A04" }}
+                      title="현재 겸직"
+                    >
+                      + {currentTerm.additionalRole}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span
@@ -159,6 +177,25 @@ export default async function PoliticianPage({
                 {politician.birthYear !== null && (
                   <p className="mt-1 text-xs text-zinc-500">
                     {politician.birthYear}년생{age !== null ? ` (만 ${age}세)` : ""}
+                  </p>
+                )}
+                {currentTerm?.additionalRole && (
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-300">
+                    현재 겸직:{" "}
+                    <span className="font-semibold text-white">
+                      {currentTerm.additionalRole}
+                    </span>
+                    {currentTerm.additionalRoleStartDate && (
+                      <>
+                        {" "}
+                        ({formatKoreanDate(currentTerm.additionalRoleStartDate)}~)
+                      </>
+                    )}
+                    {currentTerm.additionalRoleSource && (
+                      <span className="mt-0.5 block text-zinc-500">
+                        출처: {currentTerm.additionalRoleSource}
+                      </span>
+                    )}
                   </p>
                 )}
                 {dDay !== null && (

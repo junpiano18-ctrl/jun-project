@@ -25,6 +25,8 @@ export type ElectedOfficial = {
   districtName: string;
   party: { name: string; color: string } | null;
   photoUrl: string | null;
+  // 본 직무 외 겸직 (예: 법무부장관). 없으면 null.
+  additionalRole: string | null;
   // 국회의원 전용 팩트. 없으면 null.
   facts: {
     voteAttend: number | null;
@@ -134,6 +136,7 @@ export async function getElectedOfficialsByAdmCd(
           ? { name: naRow.party.name, color: naRow.party.color }
           : null,
         photoUrl: naRow.politician.photoUrl,
+        additionalRole: naRow.additionalRole ?? null,
         facts: {
           voteAttend: naRow.plenaryVoteAttendCount ?? null,
           voteSession: naRow.plenaryVoteSessionCount ?? null,
@@ -156,6 +159,7 @@ export async function getElectedOfficialsByAdmCd(
           ? { name: metroRow.party.name, color: metroRow.party.color }
           : null,
         photoUrl: metroRow.politician.photoUrl,
+        additionalRole: metroRow.additionalRole ?? null,
         facts: null,
       });
     }
@@ -174,6 +178,7 @@ export async function getElectedOfficialsByAdmCd(
           ? { name: eduRow.party.name, color: eduRow.party.color }
           : null,
         photoUrl: eduRow.politician.photoUrl,
+        additionalRole: eduRow.additionalRole ?? null,
         facts: null,
       });
     }
@@ -192,6 +197,7 @@ export async function getElectedOfficialsByAdmCd(
           ? { name: localRow.party.name, color: localRow.party.color }
           : null,
         photoUrl: localRow.politician.photoUrl,
+        additionalRole: localRow.additionalRole ?? null,
         facts: null,
       });
     }

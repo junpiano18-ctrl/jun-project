@@ -85,12 +85,22 @@ export function PoliticianCard({ pin }: { pin: PoliticianPin }) {
         />
         <div className="pin-card-id">
           <div className="pin-card-name">{pin.name}</div>
-          <span
-            className="pin-card-party"
-            style={{ backgroundColor: color }}
-          >
-            {pin.party?.shortName ?? pin.party?.name ?? "무소속"}
-          </span>
+          <div className="pin-card-chips">
+            <span
+              className="pin-card-party"
+              style={{ backgroundColor: color }}
+            >
+              {pin.party?.shortName ?? pin.party?.name ?? "무소속"}
+            </span>
+            {pin.additionalRole && (
+              <span
+                className="pin-card-additional-role"
+                title="현재 겸직"
+              >
+                + {pin.additionalRole}
+              </span>
+            )}
+          </div>
           {district && <div className="pin-card-district">{district}</div>}
         </div>
       </div>

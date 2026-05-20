@@ -166,6 +166,11 @@ model PoliticianTerm {
   plenaryVoteAttendCount  Int?   // 그중 참여 횟수
   committees             Json?   // 현 임기 위원회 이력 [{name, start, end}]
 
+  // 본 직무 외 겸직 (예: 국회의원이 장관 겸직). 공직자만, 출처 명시 필요.
+  additionalRole          String?
+  additionalRoleStartDate DateTime?
+  additionalRoleSource    String?
+
   politician  Politician   @relation(fields: [politicianId], references: [id])
   term        Term         @relation(fields: [termId], references: [id])
   district    District     @relation(fields: [districtId], references: [id])

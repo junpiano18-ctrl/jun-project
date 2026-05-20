@@ -20,6 +20,8 @@ export type PoliticianPin = {
   billProposed: number | null;
   assetTotalKrw: number | null; // 천원 단위
   termEndDate: string | null; // ISO date
+  // 본 직무 외 겸직 (예: 법무부장관).
+  additionalRole: string | null;
 };
 
 // 4개 직급의 핀을 한 번에 모아 반환. layer 키로 KoreaMap에서 토글 필터.
@@ -118,6 +120,7 @@ export async function getPoliticianPins(): Promise<{
         billProposed: r.billProposedCount ?? null,
         assetTotalKrw: latestAsset ? Number(latestAsset.totalKrw) : null,
         termEndDate: r.term?.endDate ? r.term.endDate.toISOString() : null,
+        additionalRole: r.additionalRole ?? null,
       });
     }
   };

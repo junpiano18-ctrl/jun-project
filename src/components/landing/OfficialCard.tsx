@@ -27,9 +27,20 @@ export function OfficialCard({ official }: { official: ElectedOfficial }) {
               <p className="text-xs font-semibold tracking-wide text-zinc-500 dark:text-zinc-400">
                 {official.positionLabel}
               </p>
-              <h2 className="mt-0.5 text-lg font-bold tracking-tight">
-                {official.name}
-              </h2>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h2 className="text-lg font-bold tracking-tight">
+                  {official.name}
+                </h2>
+                {official.additionalRole && (
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                    style={{ backgroundColor: "#CA8A04" }}
+                    title="현재 겸직"
+                  >
+                    + {official.additionalRole}
+                  </span>
+                )}
+              </div>
             </div>
             <FavoriteStar
               routeId={official.routeId}
