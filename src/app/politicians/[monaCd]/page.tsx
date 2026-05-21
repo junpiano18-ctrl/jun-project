@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BillsByYear } from "@/components/politician/BillsByYear";
+import { CareerList } from "@/components/politician/CareerList";
 import { PledgeCard } from "@/components/politician/PledgeCard";
 import { PoliticianPhoto } from "@/components/politician/PoliticianPhoto";
+import { HIDE_ATTENDANCE } from "@/lib/feature-flags";
 import { getPoliticianByMonaCd } from "@/lib/queries/politician-detail";
 
 export const dynamic = "force-dynamic";
@@ -100,8 +103,12 @@ export default async function PoliticianPage({
   const assetTotal = latestAsset ? formatAsset(latestAsset.totalKrw) : null;
   const assetChange = latestAsset ? formatChange(latestAsset.changeKrw) : null;
 
-  // 표시 조건
-  const showAttendance = attendanceRate !== null && voteAttend !== null && voteSession !== null;
+  // 표시 조건. 출석률은 데이터 신뢰도 문제로 일시 숨김 (HIDE_ATTENDANCE).
+  const showAttendance =
+    !HIDE_ATTENDANCE &&
+    attendanceRate !== null &&
+    voteAttend !== null &&
+    voteSession !== null;
   const showBills = billProposed !== null;
   const showCommittees = committees.length > 0;
   const showAssets = latestAsset !== null && assetTotal !== null;
@@ -198,6 +205,29 @@ export default async function PoliticianPage({
                     )}
                   </p>
                 )}
+                {currentTerm?.courtRulingSummary && (
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-300">
+                    법원 판결:{" "}
+                    {currentTerm.courtRulingDate && (
+                      <span className="text-white">
+                        {formatKoreanDate(currentTerm.courtRulingDate)}{" "}
+                      </span>
+                    )}
+                    <span className="font-semibold text-white">
+                      {currentTerm.courtRulingSummary}
+                    </span>
+                    {currentTerm.courtRulingFinal && (
+                      <span className="ml-1.5 inline-block rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-200">
+                        확정
+                      </span>
+                    )}
+                    {currentTerm.courtRulingSource && (
+                      <span className="mt-0.5 block text-zinc-500">
+                        출처: {currentTerm.courtRulingSource}
+                      </span>
+                    )}
+                  </p>
+                )}
                 {dDay !== null && (
                   <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-semibold text-zinc-100">
                     ⏳ 아직 {dDay}일 더 일해야 해요 💪
@@ -266,18 +296,7 @@ export default async function PoliticianPage({
 
           {bills.length > 0 && (
             <Card title="법안 목록">
-              <ul className="space-y-2">
-                {bills.map((b) => (
-                  <BillItem
-                    key={b.id}
-                    name={b.billName}
-                    status={b.billStatus}
-                    proposedAt={b.proposedAt}
-                    url={b.billUrl}
-                    summary={b.summary}
-                  />
-                ))}
-              </ul>
+              <BillsByYear bills={bills} />
               <p className="mt-3 text-xs text-zinc-500">
                 출처: 열린국회정보 · 국회 의안정보시스템
               </p>
@@ -341,13 +360,7 @@ export default async function PoliticianPage({
 
           {careerLines.length > 0 && (
             <Card title="학력 · 경력">
-              <ul className="space-y-1.5 text-sm text-zinc-200">
-                {careerLines.map((line, i) => (
-                  <li key={i} className="leading-snug">
-                    {line}
-                  </li>
-                ))}
-              </ul>
+              <CareerList lines={careerLines} />
               <p className="mt-3 text-xs text-zinc-500">출처: 열린국회정보</p>
             </Card>
           )}
@@ -419,59 +432,3 @@ function Card({
   );
 }
 
-const BILL_STATUS_META: Record<
-  "PENDING" | "PASSED" | "REJECTED",
-  { icon: string; label: string }
-> = {
-  PENDING: { icon: "🟡", label: "심사 중이에요" },
-  PASSED: { icon: "🟢", label: "통과됐어요" },
-  REJECTED: { icon: "🔴", label: "처리 안 됐어요" },
-};
-
-function BillItem({
-  name,
-  status,
-  proposedAt,
-  url,
-  summary,
-}: {
-  name: string;
-  status: "PENDING" | "PASSED" | "REJECTED";
-  proposedAt: Date | null;
-  url: string;
-  summary: string | null;
-}) {
-  const meta = BILL_STATUS_META[status];
-  const dateLabel = proposedAt
-    ? `${proposedAt.getFullYear()}년 ${proposedAt.getMonth() + 1}월 발의`
-    : null;
-  return (
-    <li className="rounded-lg bg-zinc-900/60 p-3">
-      <div className="flex items-start gap-2">
-        <span aria-hidden className="text-sm">
-          {meta.icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-snug text-zinc-100">
-            {name}
-          </p>
-          {summary && (
-            <p className="mt-1 text-xs text-zinc-400">🔍 쉽게 말하면: {summary}</p>
-          )}
-          <p className="mt-1.5 text-[11px] text-zinc-500">
-            {meta.label}
-            {dateLabel ? ` · ${dateLabel}` : ""}
-          </p>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1.5 inline-block text-xs font-medium text-zinc-300 hover:text-white"
-          >
-            → 국회에서 원문 보기
-          </a>
-        </div>
-      </div>
-    </li>
-  );
-}

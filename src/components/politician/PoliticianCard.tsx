@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PoliticianPhoto } from "@/components/politician/PoliticianPhoto";
+import { HIDE_ATTENDANCE } from "@/lib/feature-flags";
 import type { PoliticianPin } from "@/lib/queries/politician-pins";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -66,7 +67,9 @@ export function PoliticianCard({ pin }: { pin: PoliticianPin }) {
   // 사용자 요청 순서: D-day(항상) → 본회의 출석률 → 재산.
   const facts: Array<{ icon: string; label: string; value: string }> = [];
   if (dDayDisplay) facts.push({ icon: "⏳", label: "남은 임기", value: dDayDisplay });
-  if (attendDisplay) facts.push({ icon: "🏛️", label: "본회의 출석", value: attendDisplay });
+  if (!HIDE_ATTENDANCE && attendDisplay) {
+    facts.push({ icon: "🏛️", label: "본회의 출석", value: attendDisplay });
+  }
   if (asset) facts.push({ icon: "💰", label: "재산", value: asset });
 
   return (

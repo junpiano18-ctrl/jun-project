@@ -171,6 +171,14 @@ model PoliticianTerm {
   additionalRoleStartDate DateTime?
   additionalRoleSource    String?
 
+  // 법원 판결 정보. 수사·기소 단계는 표시 안 함 — 판결문(1심 이상)만 채울 것.
+  // courtRulingFinal=true 이고 의원직 상실 효과가 발생한 경우 PoliticianTerm.status를
+  // 별도로 DISMISSED로 set 해야 카드 빨간 배지가 뜸 (status enum이 master).
+  courtRulingDate    DateTime?
+  courtRulingSummary String?   // 예: "1심 징역 2년 선고"
+  courtRulingFinal   Boolean?  // 확정 판결 여부 (대법원·상고 포기 등)
+  courtRulingSource  String?   // 출처
+
   politician  Politician   @relation(fields: [politicianId], references: [id])
   term        Term         @relation(fields: [termId], references: [id])
   district    District     @relation(fields: [districtId], references: [id])
