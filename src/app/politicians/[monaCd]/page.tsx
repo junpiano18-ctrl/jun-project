@@ -4,8 +4,12 @@ import { BillsByYear } from "@/components/politician/BillsByYear";
 import { CareerList } from "@/components/politician/CareerList";
 import { PledgeCard } from "@/components/politician/PledgeCard";
 import { PoliticianPhoto } from "@/components/politician/PoliticianPhoto";
+import { NotableVotes } from "@/components/politician/NotableVotes";
+import { VoteHistory } from "@/components/politician/VoteHistory";
+import { WeeklySchedule } from "@/components/politician/WeeklySchedule";
 import { HIDE_ATTENDANCE } from "@/lib/feature-flags";
 import { getPoliticianByMonaCd } from "@/lib/queries/politician-detail";
+import { getWeeklyScheduleFor } from "@/lib/sources/assembly-schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +63,7 @@ export default async function PoliticianPage({
   const detail = await getPoliticianByMonaCd(monaCd);
   if (!detail) notFound();
 
-  const { politician, currentTerm } = detail;
+  const { politician, currentTerm, recentVoteRecords, notableVoteRecords } = detail;
   const partyColor = currentTerm?.party?.color ?? "#888888";
   const partyName = currentTerm?.party?.name ?? "무소속";
   const latestAsset = politician.assets[0] ?? null;
@@ -99,6 +103,18 @@ export default async function PoliticianPage({
   const dDay = termEnd ? daysUntil(termEnd) : null;
 
   const pledges = currentTerm?.pledges ?? [];
+  const voteRecords = recentVoteRecords ?? [];
+  const notableVotes = notableVoteRecords ?? [];
+
+  // 이번 주 일정 — 현 위원회(end=null) 매칭. 22대 NA term에만 의미.
+  const activeCommitteeNames = committees.filter((c) => !c.end).map((c) => c.name);
+  const isCurrent22Assembly =
+    currentTerm?.term.positionType === "NATIONAL_ASSEMBLY" &&
+    currentTerm?.term.number === 22 &&
+    currentTerm?.status === "ACTIVE";
+  const weeklySchedule = isCurrent22Assembly
+    ? await getWeeklyScheduleFor(activeCommitteeNames).catch(() => null)
+    : null;
 
   const assetTotal = latestAsset ? formatAsset(latestAsset.totalKrw) : null;
   const assetChange = latestAsset ? formatChange(latestAsset.changeKrw) : null;
@@ -239,6 +255,10 @@ export default async function PoliticianPage({
         </section>
 
         <div className="mt-4 space-y-4">
+          {weeklySchedule && (
+            <WeeklySchedule data={weeklySchedule} partyColor={partyColor} />
+          )}
+
           {showAttendance && (
             <Card title="전체 회의 출석">
               <p className="text-base leading-relaxed text-zinc-200">
@@ -299,6 +319,24 @@ export default async function PoliticianPage({
               <BillsByYear bills={bills} />
               <p className="mt-3 text-xs text-zinc-500">
                 출처: 열린국회정보 · 국회 의안정보시스템
+              </p>
+            </Card>
+          )}
+
+          {notableVotes.length > 0 && (
+            <Card title="📌 주목할 표결">
+              <NotableVotes votes={notableVotes} />
+              <p className="mt-3 text-xs text-zinc-500">
+                찬반이 극명하게 갈린 표결({notableVotes.length}건) · 출처: 열린국회정보
+              </p>
+            </Card>
+          )}
+
+          {voteRecords.length > 0 && (
+            <Card title="주요 표결 이력">
+              <VoteHistory votes={voteRecords} />
+              <p className="mt-3 text-xs text-zinc-500">
+                최근 표결 {voteRecords.length}건 · 판단/평가 없이 팩트만 · 출처: 열린국회정보
               </p>
             </Card>
           )}

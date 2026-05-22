@@ -25,6 +25,7 @@ export type ElectedOfficial = {
   districtName: string;
   party: { name: string; color: string } | null;
   photoUrl: string | null;
+  termEndDate: Date | null; // 임기 종료일 (D-day 계산용)
   // 본 직무 외 겸직 (예: 법무부장관). 없으면 null.
   additionalRole: string | null;
   // 국회의원 전용 팩트. 없으면 null.
@@ -89,7 +90,7 @@ export async function getElectedOfficialsByAdmCd(
               name: naDistrictName,
             },
           },
-          include: { politician: true, district: true, party: true },
+          include: { politician: true, district: true, party: true, term: true },
         })
       : Promise.resolve(null),
     prisma.politicianTerm.findFirst({
@@ -97,7 +98,7 @@ export async function getElectedOfficialsByAdmCd(
         term: { positionType: "METRO_GOVERNOR", number: 8 },
         district: { positionType: "METRO_GOVERNOR", name: metroDistrictName },
       },
-      include: { politician: true, district: true, party: true },
+      include: { politician: true, district: true, party: true, term: true },
     }),
     prisma.politicianTerm.findFirst({
       where: {
@@ -107,7 +108,7 @@ export async function getElectedOfficialsByAdmCd(
           name: metroDistrictName,
         },
       },
-      include: { politician: true, district: true, party: true },
+      include: { politician: true, district: true, party: true, term: true },
     }),
     prisma.politicianTerm.findFirst({
       where: {
@@ -117,7 +118,7 @@ export async function getElectedOfficialsByAdmCd(
           name: localDistrictName,
         },
       },
-      include: { politician: true, district: true, party: true },
+      include: { politician: true, district: true, party: true, term: true },
     }),
   ]);
 
@@ -137,6 +138,7 @@ export async function getElectedOfficialsByAdmCd(
           : null,
         photoUrl: naRow.politician.photoUrl,
         additionalRole: naRow.additionalRole ?? null,
+        termEndDate: naRow.term?.endDate ?? null,
         facts: {
           voteAttend: naRow.plenaryVoteAttendCount ?? null,
           voteSession: naRow.plenaryVoteSessionCount ?? null,
@@ -160,6 +162,7 @@ export async function getElectedOfficialsByAdmCd(
           : null,
         photoUrl: metroRow.politician.photoUrl,
         additionalRole: metroRow.additionalRole ?? null,
+        termEndDate: metroRow.term?.endDate ?? null,
         facts: null,
       });
     }
@@ -179,6 +182,7 @@ export async function getElectedOfficialsByAdmCd(
           : null,
         photoUrl: eduRow.politician.photoUrl,
         additionalRole: eduRow.additionalRole ?? null,
+        termEndDate: eduRow.term?.endDate ?? null,
         facts: null,
       });
     }
@@ -198,6 +202,7 @@ export async function getElectedOfficialsByAdmCd(
           : null,
         photoUrl: localRow.politician.photoUrl,
         additionalRole: localRow.additionalRole ?? null,
+        termEndDate: localRow.term?.endDate ?? null,
         facts: null,
       });
     }

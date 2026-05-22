@@ -41,6 +41,15 @@ enum BillStatus {
   REJECTED   // 처리 안 됨 (부결/폐기/철회/대안반영폐기/임기만료폐기)
 }
 
+// 본회의 표결 결과. nojepdqqaweusdfbi.RESULT_VOTE_MOD → 다음 enum.
+//   "찬성" → AGREE, "반대" → DISAGREE, "기권" → ABSTAIN, "불참" → ABSENT
+enum VoteResult {
+  AGREE
+  DISAGREE
+  ABSTAIN
+  ABSENT
+}
+
 // ──────────────────────────────────────────────────────────
 // Reference data
 // ──────────────────────────────────────────────────────────
@@ -121,9 +130,10 @@ model Politician {
   // 열린국회 의원 정보(nwvrqwxyaytdsfvhu)의 MEM_TITLE — 주요 학력·경력 통합 텍스트
   careerText String?
 
-  terms  PoliticianTerm[]
-  assets Asset[]
-  bills  Bill[]
+  terms       PoliticianTerm[]
+  assets      Asset[]
+  bills       Bill[]
+  voteRecords VoteRecord[]
 
   @@index([name])
 }
@@ -138,6 +148,12 @@ model Bill {
   proposedAt   DateTime?
   billUrl      String
   summary      String?    // Claude API 쉬운 말 요약 (ANTHROPIC_API_KEY 생기면 채움)
+
+  // 본회의 표결 집계 (sync-votes.ts가 본회의 처리안건 응답에서 update). 표결 없는 의안은 null.
+  voteTcnt   Int? // 재석 총수
+  yesTcnt    Int? // 찬성
+  noTcnt     Int? // 반대
+  blankTcnt  Int? // 기권
 
   politician Politician @relation(fields: [politicianId], references: [id])
 
@@ -256,4 +272,47 @@ model Attendance {
 
   @@index([politicianTermId])
   @@index([date])
+}
+
+// 본회의 처리 안건 마스터 — VoteRecord의 billId가 가리키는 의안 메타.
+// 발의 법안(Bill)이 아닌 대안·위원회안·예산안 등도 포함되므로 별도 모델.
+// 소스: nwbpacrgavhjryiph + nbslryaradshbpbpm.
+model PlenaryBill {
+  billId    String    @id // 의안 식별자 (PRC_xxx)
+  billName  String
+  billUrl   String?
+  age       Int       @default(22)
+  procDate  DateTime?
+  // 본회의 표결 집계
+  voteTcnt  Int?
+  yesTcnt   Int?
+  noTcnt    Int?
+  blankTcnt Int?
+  // AI 요약 (Bill.summary와 동일한 system prompt, 향후 별도 sync)
+  summary       String?
+  summaryModel  String?
+  summaryUpdatedAt DateTime?
+
+  @@index([procDate])
+}
+
+// 본회의 표결 기록 — 한 의원의 한 의안에 대한 표결.
+// 소스: 열린국회정보 nojepdqqaweusdfbi (의안 단위 호출, 의원당 row).
+model VoteRecord {
+  id           String     @id @default(cuid())
+  politicianId String
+  billId       String     // 의안 식별자 (PRC_xxx)
+  billName     String
+  voteDate     DateTime
+  result       VoteResult
+  billUrl      String?    // 의안정보시스템 링크
+  sessionCd    Int?       // 회기 (예: 435)
+  currentsCd   Int?       // 차수
+  age          Int        // 국회 대수 (예: 22)
+
+  politician Politician @relation(fields: [politicianId], references: [id])
+
+  @@unique([politicianId, billId])
+  @@index([politicianId, voteDate])
+  @@index([billId])
 }

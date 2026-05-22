@@ -9,6 +9,20 @@ export type SearchPoliticianResult = {
   party: { name: string; color: string } | null;
 };
 
+export type SearchBillResult = {
+  billId: string;
+  billName: string;
+  billUrl: string;
+  summary: string | null;
+  billStatus: "PENDING" | "PASSED" | "REJECTED";
+  proposedAt: string | null; // ISO date
+  politician: {
+    monaCd: string | null;
+    name: string;
+    party: { name: string; color: string } | null;
+  } | null;
+};
+
 export type SearchRegionResult = {
   admCd: string; // 8자리 행정동 코드
   admNm: string; // "서울특별시 마포구 합정동"
@@ -28,6 +42,50 @@ type DongEntry = {
   districtSidoSgg: string;
   districtName: string | null;
 };
+
+// 법안명 키워드 검색. take 6개로 제한. 22대 한정.
+export async function searchBillsByKeyword(q: string): Promise<SearchBillResult[]> {
+  const query = q.trim();
+  if (query.length < 2) return []; // 1자는 노이즈 — 2자 이상만
+
+  const rows = await prisma.bill.findMany({
+    where: { billName: { contains: query } },
+    orderBy: { proposedAt: "desc" },
+    take: 6,
+    include: {
+      politician: {
+        select: {
+          monaCd: true,
+          name: true,
+          terms: {
+            where: { term: { positionType: "NATIONAL_ASSEMBLY", number: 22 } },
+            include: { party: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  return rows.map((b) => {
+    const term = b.politician.terms[0];
+    return {
+      billId: b.billId,
+      billName: b.billName,
+      billUrl: b.billUrl,
+      summary: b.summary,
+      billStatus: b.billStatus,
+      proposedAt: b.proposedAt ? b.proposedAt.toISOString() : null,
+      politician: {
+        monaCd: b.politician.monaCd,
+        name: b.politician.name,
+        party: term?.party
+          ? { name: term.party.name, color: term.party.color }
+          : null,
+      },
+    };
+  });
+}
 
 // 22대 의원 이름 부분 일치 검색. take 8개로 제한.
 export async function searchPoliticiansByName(q: string): Promise<SearchPoliticianResult[]> {

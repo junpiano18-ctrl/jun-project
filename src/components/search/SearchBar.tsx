@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
+  SearchBillResult,
   SearchPoliticianResult,
   SearchRegionResult,
 } from "@/lib/queries/search";
@@ -10,11 +11,19 @@ import type {
 type SearchResponse = {
   politicians: SearchPoliticianResult[];
   regions: SearchRegionResult[];
+  bills: SearchBillResult[];
 };
 
 type FlatItem =
   | { kind: "politician"; data: SearchPoliticianResult }
-  | { kind: "region"; data: SearchRegionResult };
+  | { kind: "region"; data: SearchRegionResult }
+  | { kind: "bill"; data: SearchBillResult };
+
+const BILL_STATUS_TAG: Record<"PENDING" | "PASSED" | "REJECTED", string> = {
+  PENDING: "심사 중",
+  PASSED: "통과",
+  REJECTED: "처리 안 됨",
+};
 
 const DEBOUNCE_MS = 180;
 
@@ -25,7 +34,7 @@ export function SearchBar() {
 
   const [value, setValue] = useState("");
   const [composing, setComposing] = useState(false);
-  const [results, setResults] = useState<SearchResponse>({ politicians: [], regions: [] });
+  const [results, setResults] = useState<SearchResponse>({ politicians: [], regions: [], bills: [] });
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState(-1);
@@ -36,6 +45,7 @@ export function SearchBar() {
     return [
       ...results.politicians.map((p) => ({ kind: "politician" as const, data: p })),
       ...results.regions.map((r) => ({ kind: "region" as const, data: r })),
+      ...results.bills.map((b) => ({ kind: "bill" as const, data: b })),
     ];
   }, [results]);
 
@@ -71,7 +81,7 @@ export function SearchBar() {
     if (composing) return;
     const q = value.trim();
     if (!q) {
-      setResults({ politicians: [], regions: [] });
+      setResults({ politicians: [], regions: [], bills: [] });
       setLoading(false);
       return;
     }
@@ -96,12 +106,20 @@ export function SearchBar() {
   }, [value, composing]);
 
   function goItem(item: FlatItem) {
+    if (item.kind === "bill") {
+      setOpen(false);
+      setValue("");
+      setResults({ politicians: [], regions: [], bills: [] });
+      inputRef.current?.blur();
+      window.open(item.data.billUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     const monaCd =
       item.kind === "politician" ? item.data.monaCd : item.data.politician?.monaCd;
     if (!monaCd) return;
     setOpen(false);
     setValue("");
-    setResults({ politicians: [], regions: [] });
+    setResults({ politicians: [], regions: [], bills: [] });
     inputRef.current?.blur();
 
     // 이름 검색 비례대표는 지역구 좌표가 없으므로 지도 focus 대신 안내 후 상세로.
@@ -169,8 +187,8 @@ export function SearchBar() {
           setValue((e.target as HTMLInputElement).value);
         }}
         onKeyDown={onKeyDown}
-        placeholder="의원 이름 또는 동네 검색  /"
-        aria-label="의원 또는 동네 검색"
+        placeholder="동네·의원·법안 검색  /"
+        aria-label="동네·의원·법안 검색"
         className="w-full rounded border border-zinc-200 bg-white px-3 py-1.5 text-sm placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950"
       />
 
@@ -252,13 +270,56 @@ export function SearchBar() {
             );
           })}
 
+          {!loading && results.bills.length > 0 && (
+            <SectionHeader>법안</SectionHeader>
+          )}
+          {!loading && results.bills.map((b, i) => {
+            runningIdx++;
+            const idx = runningIdx;
+            return (
+              <button
+                key={`b-${b.billId}-${i}`}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); goItem({ kind: "bill", data: b }); }}
+                onMouseEnter={() => setFocusedIdx(idx)}
+                className={`flex w-full items-start gap-2.5 px-3 py-2 text-left text-sm transition ${
+                  idx === focusedIdx
+                    ? "bg-zinc-100 dark:bg-zinc-900"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                }`}
+              >
+                <span aria-hidden className="mt-0.5 text-sm">📋</span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{b.billName}</div>
+                  {b.summary && (
+                    <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500">
+                      💬 {b.summary}
+                    </p>
+                  )}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
+                    {b.politician && (
+                      <>
+                        <span aria-hidden className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: b.politician.party?.color ?? "#a1a1aa" }} />
+                        <span>{b.politician.name}</span>
+                      </>
+                    )}
+                    <span className="rounded-full bg-zinc-100 px-1.5 py-px text-[10px] dark:bg-zinc-800">
+                      {BILL_STATUS_TAG[b.billStatus]}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+
           {empty && (
             <div className="px-3 py-3 text-xs text-zinc-500">
               <p className="font-medium text-zinc-700 dark:text-zinc-300">
                 &quot;{value}&quot;에 해당하는 결과가 없어요.
               </p>
               <p className="mt-1 text-zinc-400">
-                의원 이름(예: 정청래) 또는 동 이름(예: 합정동)을 입력해보세요.
+                동네(예: 마포구), 의원(예: 정청래), 법안 키워드(예: 최저임금)를 입력해 보세요.
               </p>
             </div>
           )}

@@ -1,0 +1,5 @@
+-- Bill: 본회의 표결 집계 4필드 추가.
+ALTER TABLE "Bill" ADD COLUMN "voteTcnt" INTEGER;
+ALTER TABLE "Bill" ADD COLUMN "yesTcnt" INTEGER;
+ALTER TABLE "Bill" ADD COLUMN "noTcnt" INTEGER;
+ALTER TABLE "Bill" ADD COLUMN "blankTcnt" INTEGER;

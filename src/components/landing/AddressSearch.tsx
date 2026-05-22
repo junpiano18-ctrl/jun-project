@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
+  SearchBillResult,
   SearchPoliticianResult,
   SearchRegionResult,
 } from "@/lib/queries/search";
@@ -10,11 +11,19 @@ import type {
 type SearchResponse = {
   politicians: SearchPoliticianResult[];
   regions: SearchRegionResult[];
+  bills: SearchBillResult[];
 };
 
 type Item =
   | { kind: "region"; data: SearchRegionResult }
-  | { kind: "politician"; data: SearchPoliticianResult };
+  | { kind: "politician"; data: SearchPoliticianResult }
+  | { kind: "bill"; data: SearchBillResult };
+
+const BILL_STATUS_TAG: Record<"PENDING" | "PASSED" | "REJECTED", string> = {
+  PENDING: "심사 중",
+  PASSED: "통과",
+  REJECTED: "처리 안 됨",
+};
 
 const DEBOUNCE_MS = 180;
 
@@ -27,17 +36,19 @@ export function AddressSearch() {
   const [composing, setComposing] = useState(false);
   const [regions, setRegions] = useState<SearchRegionResult[]>([]);
   const [politicians, setPoliticians] = useState<SearchPoliticianResult[]>([]);
+  const [bills, setBills] = useState<SearchBillResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState(-1);
 
-  // 키보드 네비용 평탄화: 동네 → 의원 순. 첫 동네 매치를 1순위로.
+  // 키보드 네비용 평탄화: 동네 → 의원 → 법안 순.
   const items: Item[] = useMemo(
     () => [
       ...regions.map((r) => ({ kind: "region" as const, data: r })),
       ...politicians.map((p) => ({ kind: "politician" as const, data: p })),
+      ...bills.map((b) => ({ kind: "bill" as const, data: b })),
     ],
-    [regions, politicians],
+    [regions, politicians, bills],
   );
 
   useEffect(() => {
@@ -55,6 +66,7 @@ export function AddressSearch() {
     if (!q) {
       setRegions([]);
       setPoliticians([]);
+      setBills([]);
       setLoading(false);
       return;
     }
@@ -66,6 +78,7 @@ export function AddressSearch() {
         .then((data: SearchResponse) => {
           setRegions(data.regions ?? []);
           setPoliticians(data.politicians ?? []);
+          setBills(data.bills ?? []);
           setFocusedIdx(-1);
         })
         .catch((e) => {
@@ -84,8 +97,11 @@ export function AddressSearch() {
     inputRef.current?.blur();
     if (item.kind === "region") {
       router.push(`/my-reps?adm=${item.data.admCd}`);
-    } else {
+    } else if (item.kind === "politician") {
       router.push(`/politicians/${item.data.monaCd}`);
+    } else {
+      // 법안 → 외부 의안정보시스템
+      window.open(item.data.billUrl, "_blank", "noopener,noreferrer");
     }
   }
 
@@ -117,9 +133,12 @@ export function AddressSearch() {
 
   const showDropdown = open && value.trim().length > 0;
   const empty = !loading && items.length === 0;
+  const firstItem = items.length > 0 ? (focusedIdx >= 0 ? items[focusedIdx] : items[0]) : null;
   const submitLabel =
-    items.length > 0 && (focusedIdx >= 0 ? items[focusedIdx] : items[0]).kind === "politician"
+    firstItem?.kind === "politician"
       ? "의원 정보 보기 →"
+      : firstItem?.kind === "bill"
+      ? "법안 원문 보기 →"
       : "우리 동네 일꾼 보기 →";
 
   let runningIdx = -1;
@@ -145,8 +164,8 @@ export function AddressSearch() {
             setValue((e.target as HTMLInputElement).value);
           }}
           onKeyDown={onKeyDown}
-          placeholder="동네 또는 의원 이름  예) 마포구, 정청래"
-          aria-label="동네 또는 의원 검색"
+          placeholder="동네·의원·법안  예) 마포구, 정청래, 최저임금"
+          aria-label="동네·의원·법안 검색"
           className="w-full bg-transparent text-base outline-none placeholder:text-zinc-400 sm:text-lg"
         />
       </div>
@@ -233,13 +252,57 @@ export function AddressSearch() {
             );
           })}
 
+          {!loading && bills.length > 0 && <SectionHeader>법안</SectionHeader>}
+          {!loading && bills.map((b) => {
+            runningIdx++;
+            const idx = runningIdx;
+            return (
+              <button
+                key={`b-${b.billId}-${idx}`}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); go({ kind: "bill", data: b }); }}
+                onMouseEnter={() => setFocusedIdx(idx)}
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${
+                  idx === focusedIdx
+                    ? "bg-zinc-100 dark:bg-zinc-900"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                }`}
+              >
+                <span aria-hidden className="mt-0.5 text-base">📋</span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{b.billName}</div>
+                  {b.summary && (
+                    <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">
+                      💬 {b.summary}
+                    </p>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
+                    {b.politician && (
+                      <>
+                        <span
+                          aria-hidden
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: b.politician.party?.color ?? "#a1a1aa" }}
+                        />
+                        <span>{b.politician.name}</span>
+                      </>
+                    )}
+                    <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] dark:bg-zinc-800">
+                      {BILL_STATUS_TAG[b.billStatus]}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+
           {empty && (
             <div className="px-4 py-4 text-sm text-zinc-500">
               <p className="font-medium text-zinc-700 dark:text-zinc-300">
                 &quot;{value}&quot; 결과가 없어요.
               </p>
               <p className="mt-1 text-zinc-400">
-                동 이름(예: 합정동), 시군구(예: 마포구), 또는 의원 이름(예: 정청래)을 입력해 보세요.
+                동네(예: 마포구), 의원(예: 정청래), 또는 법안 키워드(예: 최저임금)를 입력해 보세요.
               </p>
             </div>
           )}

@@ -16,18 +16,27 @@ function client() {
 export type SummaryResult = {
   summary: string;
   model: string;
+  usage: { inputTokens: number; outputTokens: number };
 };
 
-export async function summarizeBill(billName: string): Promise<SummaryResult> {
-  const model = DEFAULT_MODEL;
+export async function summarizeBill(
+  billName: string,
+  modelOverride?: string,
+): Promise<SummaryResult> {
+  const model = modelOverride ?? DEFAULT_MODEL;
   const res = await client().messages.create({
     model,
-    max_tokens: 300,
+    max_tokens: 200,
     system:
-      "당신은 국회에 발의된 법안 이름을 중학교 2학년 학생도 이해할 수 있게 풀어 설명하는 도우미입니다. " +
-      "법안명만 주어졌을 때, 그 법이 무엇을 바꾸려고 하는지 한 문장(짧게 1~2문장)으로만 쉽게 설명하세요. " +
-      "조항 번호·외래어·법률 용어는 쉬운 말로. 추측이 필요하면 '~로 보입니다' 같이 단정하지 마세요. " +
-      "출처에 없는 내용을 지어내지 마세요.",
+      "당신은 국회에 발의된 법안 이름을 중학교 2학년 학생도 이해할 수 있게 풀어 설명하는 도우미입니다.\n" +
+      "법안명만 주어졌을 때, 그 법이 무엇을 바꾸려고 하는지 단 한 문장(50~100자)으로만 답하세요.\n\n" +
+      "규칙:\n" +
+      "- 마크다운 사용 금지 (#, *, **, 목록, 헤딩, bold 절대 사용 금지). 평문 한 문장만.\n" +
+      "- 응답에 법안명을 다시 적지 마세요.\n" +
+      "- 사용자에게 다시 묻는 말이나 사족 금지. 예시 금지 표현: '구체적으로 알려주시면', '자세한 내용은', '~를 봐야 알 수 있습니다', '더 자세히 알려면'.\n" +
+      "- 조항 번호·외래어·법률 용어는 쉬운 말로 풀어 쓰세요. 단, 풀어 쓴 설명은 1~2개 단어만 괄호로 짧게.\n" +
+      "- 추측이 필요하면 '~로 보입니다' 정도만, 단정 짓지 마세요.\n" +
+      "- 출처에 없는 내용을 지어내지 마세요.",
     messages: [{ role: "user", content: `법안명: ${billName}` }],
   });
   const text = res.content
@@ -35,5 +44,12 @@ export async function summarizeBill(billName: string): Promise<SummaryResult> {
     .map((b) => b.text)
     .join("\n")
     .trim();
-  return { summary: text, model };
+  return {
+    summary: text,
+    model,
+    usage: {
+      inputTokens: res.usage.input_tokens,
+      outputTokens: res.usage.output_tokens,
+    },
+  };
 }
