@@ -111,7 +111,7 @@ export function SearchBar() {
       setValue("");
       setResults({ politicians: [], regions: [], bills: [] });
       inputRef.current?.blur();
-      window.open(item.data.billUrl, "_blank", "noopener,noreferrer");
+      router.push(`/bills/${item.data.billId}`);
       return;
     }
     const monaCd =
