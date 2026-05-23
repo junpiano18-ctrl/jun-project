@@ -27,6 +27,14 @@ const BILL_STATUS_TAG: Record<"PENDING" | "PASSED" | "REJECTED", string> = {
 
 const DEBOUNCE_MS = 180;
 
+// 편향 시비 방지를 위해 의원 이름은 제외, 동네명만 예시로 회전.
+const DONG_EXAMPLES = [
+  "행신동", "성산동", "해운대동",
+  "서면동", "신촌동", "둔산동",
+  "평촌동", "일산동", "분당동",
+  "광안동", "유성동", "달서동",
+];
+
 export function AddressSearch() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +48,11 @@ export function AddressSearch() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState(-1);
+  // SSR 안정성을 위해 첫 렌더는 고정값, 마운트 후 랜덤 교체 → hydration mismatch 회피.
+  const [placeholderDong, setPlaceholderDong] = useState(DONG_EXAMPLES[0]);
+  useEffect(() => {
+    setPlaceholderDong(DONG_EXAMPLES[Math.floor(Math.random() * DONG_EXAMPLES.length)]);
+  }, []);
 
   // 키보드 네비용 평탄화: 동네 → 의원 → 법안 순.
   const items: Item[] = useMemo(
@@ -164,7 +177,7 @@ export function AddressSearch() {
             setValue((e.target as HTMLInputElement).value);
           }}
           onKeyDown={onKeyDown}
-          placeholder="동네·의원·법안  예) 마포구, 정청래, 최저임금"
+          placeholder={`우리 동네 입력 (예: ${placeholderDong})`}
           aria-label="동네·의원·법안 검색"
           className="w-full bg-transparent text-base outline-none placeholder:text-zinc-400 sm:text-lg"
         />
@@ -185,7 +198,7 @@ export function AddressSearch() {
             <div className="px-4 py-3 text-sm text-zinc-400">검색 중…</div>
           )}
 
-          {!loading && regions.length > 0 && <SectionHeader>동네</SectionHeader>}
+          {!loading && regions.length > 0 && <SectionHeader>🏘️ 동네</SectionHeader>}
           {!loading && regions.map((r) => {
             runningIdx++;
             const idx = runningIdx;
@@ -214,7 +227,7 @@ export function AddressSearch() {
             );
           })}
 
-          {!loading && politicians.length > 0 && <SectionHeader>의원</SectionHeader>}
+          {!loading && politicians.length > 0 && <SectionHeader>👤 의원</SectionHeader>}
           {!loading && politicians.map((p) => {
             runningIdx++;
             const idx = runningIdx;
@@ -252,7 +265,7 @@ export function AddressSearch() {
             );
           })}
 
-          {!loading && bills.length > 0 && <SectionHeader>법안</SectionHeader>}
+          {!loading && bills.length > 0 && <SectionHeader>📋 법안</SectionHeader>}
           {!loading && bills.map((b) => {
             runningIdx++;
             const idx = runningIdx;

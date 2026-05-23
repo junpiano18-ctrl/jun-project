@@ -199,7 +199,7 @@ export function SearchBar() {
           )}
 
           {!loading && results.politicians.length > 0 && (
-            <SectionHeader>의원</SectionHeader>
+            <SectionHeader>👤 의원</SectionHeader>
           )}
           {!loading && results.politicians.map((p) => {
             runningIdx++;
@@ -231,7 +231,7 @@ export function SearchBar() {
           })}
 
           {!loading && results.regions.length > 0 && (
-            <SectionHeader>동네</SectionHeader>
+            <SectionHeader>🏘️ 동네</SectionHeader>
           )}
           {!loading && results.regions.map((r, i) => {
             runningIdx++;
@@ -271,7 +271,7 @@ export function SearchBar() {
           })}
 
           {!loading && results.bills.length > 0 && (
-            <SectionHeader>법안</SectionHeader>
+            <SectionHeader>📋 법안</SectionHeader>
           )}
           {!loading && results.bills.map((b, i) => {
             runningIdx++;

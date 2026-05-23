@@ -87,33 +87,41 @@ export async function searchBillsByKeyword(q: string): Promise<SearchBillResult[
   });
 }
 
-// 22대 의원 이름 부분 일치 검색. take 8개로 제한.
+// 22대 의원 이름 부분 일치 검색. 정확 일치 > 시작 일치 > 포함 일치 우선순위, 최대 5명.
 export async function searchPoliticiansByName(q: string): Promise<SearchPoliticianResult[]> {
   const query = q.trim();
   if (query.length < 1) return [];
 
+  // 후보를 넉넉히 가져온 뒤 자바스크립트로 정렬 (DB는 contains만).
   const rows = await prisma.politicianTerm.findMany({
     where: {
       term: { positionType: "NATIONAL_ASSEMBLY", number: 22 },
       politician: { name: { contains: query } },
     },
     include: { politician: true, district: true, party: true },
-    take: 8,
+    take: 20,
     orderBy: { politician: { name: "asc" } },
   });
 
-  const out: SearchPoliticianResult[] = [];
-  for (const r of rows) {
-    if (!r.politician.monaCd) continue;
-    out.push({
-      monaCd: r.politician.monaCd,
-      name: r.politician.name,
-      districtName: r.district.name,
-      isProportional: r.district.isProportional,
-      party: r.party ? { name: r.party.name, color: r.party.color } : null,
-    });
-  }
-  return out;
+  const ranked = rows
+    .filter((r) => r.politician.monaCd)
+    .map((r) => {
+      const name = r.politician.name;
+      let rank = 2;
+      if (name === query) rank = 0;
+      else if (name.startsWith(query)) rank = 1;
+      return { r, rank };
+    })
+    .sort((a, b) => a.rank - b.rank || a.r.politician.name.localeCompare(b.r.politician.name, "ko"))
+    .slice(0, 5);
+
+  return ranked.map(({ r }) => ({
+    monaCd: r.politician.monaCd as string,
+    name: r.politician.name,
+    districtName: r.district.name,
+    isProportional: r.district.isProportional,
+    party: r.party ? { name: r.party.name, color: r.party.color } : null,
+  }));
 }
 
 // 동/시·군·구 부분 일치 검색. 행정동 매핑 → 22대 선거구 → 해당 의원.
@@ -132,7 +140,7 @@ export async function searchByRegion(q: string): Promise<SearchRegionResult[]> {
     else if (e.dongName.startsWith(query)) startsWith.push(e);
     else if (e.adm_nm.includes(query) || e.sggnm.includes(query)) contains.push(e);
   }
-  const picked = [...exact, ...startsWith, ...contains].slice(0, 8);
+  const picked = [...exact, ...startsWith, ...contains].slice(0, 5);
   if (!picked.length) return [];
 
   // 매칭된 District.name 모아서 한 번에 의원 조회.
