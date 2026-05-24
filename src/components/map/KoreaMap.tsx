@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import DistrictBoundaries from "@/components/map/DistrictBoundaries";
@@ -123,10 +124,16 @@ export default function KoreaMap({ pins, proportionalTotal }: Props) {
         proportionalTotal={proportionalTotal}
       />
 
-      {/* 진단용 인디케이터 — visible state 확인 후 제거 */}
-      <div className="absolute bottom-2 left-2 z-[1000] rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">
-        visible: [{[...visible].join(", ") || "비어있음"}]
-      </div>
+      {/* 좌상단 홈 버튼 — 44x44 터치 영역 (iOS HIG 권장 최소치). 모바일·데스크톱 공통. */}
+      <Link
+        href="/"
+        aria-label="홈으로"
+        className="absolute left-3 top-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-md transition hover:bg-zinc-50"
+      >
+        <span aria-hidden className="text-lg">
+          🏠
+        </span>
+      </Link>
     </div>
   );
 }

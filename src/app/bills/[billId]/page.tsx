@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PartyTallyTable } from "@/components/bill/PartyTallyTable";
+import { VoterDrilldownGroup } from "@/components/bill/VoterDrilldown";
 import { splitBillName } from "@/lib/format/bill-name";
 import { getBillDetail } from "@/lib/queries/bills";
 
@@ -137,23 +138,7 @@ export default async function BillDetailPage({
             <div className="text-base leading-relaxed text-zinc-700">
               재석{" "}
               <span className="text-2xl font-bold text-zinc-900 tabular-nums">{total}명</span>{" "}
-              중{" "}
-              <span className="text-emerald-700">
-                <span className="text-xl font-bold tabular-nums">{yes}명</span> 찬성
-              </span>
-              ,{" "}
-              <span className="text-red-700">
-                <span className="text-xl font-bold tabular-nums">{no}명</span> 반대
-              </span>
-              {blank > 0 && (
-                <>
-                  ,{" "}
-                  <span className="text-amber-700">
-                    <span className="text-xl font-bold tabular-nums">{blank}명</span> 기권
-                  </span>
-                </>
-              )}
-              했어요
+              중 표결 결과예요
             </div>
             <div className="mt-4 overflow-hidden rounded-full bg-zinc-100">
               <div className="flex h-2.5 w-full">
@@ -168,27 +153,28 @@ export default async function BillDetailPage({
                 )}
               </div>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
-              <span className="text-emerald-700">찬성 {yesPct}%</span>
-              <span className="text-zinc-300">·</span>
-              <span className="text-red-700">반대 {noPct}%</span>
-              {blank > 0 && (
-                <>
-                  <span className="text-zinc-300">·</span>
-                  <span className="text-amber-700">기권 {blankPct}%</span>
-                </>
-              )}
-            </div>
-            <p className="mt-3 text-xs text-zinc-500">출처: 열린국회정보</p>
+            {/* 클릭하면 의원 목록 펼침 — 백분율 함께 라벨에 표시. */}
+            <VoterDrilldownGroup
+              className="mt-3 text-sm"
+              billId={bill.billId}
+              items={[
+                ...(yes > 0 ? [{ result: "AGREE" as const, count: yes, labelOverride: `찬성 ${yes}명 (${yesPct}%)` }] : []),
+                ...(no > 0 ? [{ result: "DISAGREE" as const, count: no, labelOverride: `반대 ${no}명 (${noPct}%)` }] : []),
+                ...(blank > 0 ? [{ result: "ABSTAIN" as const, count: blank, labelOverride: `기권 ${blank}명 (${blankPct}%)` }] : []),
+              ]}
+            />
+            <p className="mt-3 text-xs text-zinc-500">
+              숫자를 누르면 해당 의원 목록이 펼쳐져요 · 출처: 열린국회정보
+            </p>
           </Card>
           )}
 
           {/* 정당별 찬반 */}
           {bill.partyTallies.length > 0 && (
             <Card title="정당별 찬반">
-              <PartyTallyTable tallies={bill.partyTallies} />
+              <PartyTallyTable billId={bill.billId} tallies={bill.partyTallies} />
               <p className="mt-3 text-xs text-zinc-500">
-                22대 국회의원 표결 기준 · 출처: 열린국회정보
+                22대 국회의원 표결 기준 · 숫자 누르면 의원 목록 펼침 · 출처: 열린국회정보
               </p>
             </Card>
           )}

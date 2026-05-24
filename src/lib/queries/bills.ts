@@ -95,6 +95,7 @@ export async function listBills(opts: {
 }
 
 export type PartyTally = {
+  partyId: string | null; // 무소속(party row 없음)이면 null — UI에서 drilldown filter용
   partyName: string;
   partyColor: string;
   agree: number;
@@ -189,12 +190,13 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
 
   // 정당별 찬반 — VoteRecord JOIN PoliticianTerm (22대 NA만) JOIN Party
   const partyRows: Array<{
+    partyId: string | null;
     partyName: string;
     partyColor: string;
     result: "AGREE" | "DISAGREE" | "ABSTAIN" | "ABSENT";
     cnt: bigint;
   }> = await prisma.$queryRaw`
-    SELECT p."name" AS "partyName", p."color" AS "partyColor", v."result", COUNT(*)::bigint AS cnt
+    SELECT p."id" AS "partyId", p."name" AS "partyName", p."color" AS "partyColor", v."result", COUNT(*)::bigint AS cnt
     FROM "VoteRecord" v
     JOIN "PoliticianTerm" pt ON pt."politicianId" = v."politicianId"
     JOIN "Term" t ON t."id" = pt."termId"
@@ -202,7 +204,7 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
     WHERE v."billId" = ${billId}
       AND t."positionType" = 'NATIONAL_ASSEMBLY'
       AND t."number" = 22
-    GROUP BY p."name", p."color", v."result"
+    GROUP BY p."id", p."name", p."color", v."result"
   `;
   const tallyMap = new Map<string, PartyTally>();
   for (const r of partyRows) {
@@ -210,6 +212,7 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
     const color = r.partyColor ?? "#888888";
     if (!tallyMap.has(key)) {
       tallyMap.set(key, {
+        partyId: r.partyId,
         partyName: key,
         partyColor: color,
         agree: 0,

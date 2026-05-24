@@ -1,10 +1,15 @@
 import type { PartyTally } from "@/lib/queries/bills";
+import { VoterDrilldownGroup } from "@/components/bill/VoterDrilldown";
 
-export function PartyTallyTable({ tallies }: { tallies: PartyTally[] }) {
+export function PartyTallyTable({
+  billId,
+  tallies,
+}: {
+  billId: string;
+  tallies: PartyTally[];
+}) {
   if (tallies.length === 0) {
-    return (
-      <p className="text-sm text-zinc-500">표결 정보가 없어요.</p>
-    );
+    return <p className="text-sm text-zinc-500">표결 정보가 없어요.</p>;
   }
   return (
     <ul className="space-y-3">
@@ -41,27 +46,19 @@ export function PartyTallyTable({ tallies }: { tallies: PartyTally[] }) {
                 )}
               </div>
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-zinc-500">
-              {t.agree > 0 && <span className="text-emerald-700">찬성 {t.agree}</span>}
-              {t.disagree > 0 && (
-                <>
-                  {t.agree > 0 && <span className="text-zinc-300">·</span>}
-                  <span className="text-red-700">반대 {t.disagree}</span>
-                </>
-              )}
-              {t.abstain > 0 && (
-                <>
-                  <span className="text-zinc-300">·</span>
-                  <span className="text-amber-700">기권 {t.abstain}</span>
-                </>
-              )}
-              {t.absent > 0 && (
-                <>
-                  <span className="text-zinc-300">·</span>
-                  <span className="text-zinc-500">불참 {t.absent}</span>
-                </>
-              )}
-            </div>
+            {/* drilldown — 숫자 클릭 시 그 정당 + 결과 의원 목록 펼침 */}
+            <VoterDrilldownGroup
+              className="mt-1 text-[11px]"
+              billId={billId}
+              partyId={t.partyId ?? undefined}
+              partyName={t.partyName}
+              items={[
+                ...(t.agree > 0 ? [{ result: "AGREE" as const, count: t.agree, labelOverride: `찬성 ${t.agree}` }] : []),
+                ...(t.disagree > 0 ? [{ result: "DISAGREE" as const, count: t.disagree, labelOverride: `반대 ${t.disagree}` }] : []),
+                ...(t.abstain > 0 ? [{ result: "ABSTAIN" as const, count: t.abstain, labelOverride: `기권 ${t.abstain}` }] : []),
+                ...(t.absent > 0 ? [{ result: "ABSENT" as const, count: t.absent, labelOverride: `불참 ${t.absent}` }] : []),
+              ]}
+            />
           </li>
         );
       })}
