@@ -10,7 +10,6 @@ import { SeaLabels } from "@/components/map/SeaLabels";
 import { ZoomTracker } from "@/components/map/ZoomTracker";
 import {
   ALL_LAYER_KEYS,
-  LAYERS,
   allowedAtZoom,
   type LayerKey,
 } from "@/lib/map/layers";

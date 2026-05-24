@@ -14,7 +14,8 @@ export async function getPoliticianByMonaCd(idOrMonaCd: string) {
           term: true,
           district: true,
           party: true,
-          pledges: { orderBy: { ordNum: "asc" } }, // 선관위 제출 순번대로 (category null인 후보 多)
+          // 최근 선거부터 + 같은 선거 내에선 순번대로.
+          pledges: { orderBy: [{ electionDate: "desc" }, { ordNum: "asc" }] },
         },
         orderBy: { electedDate: "desc" },
       },

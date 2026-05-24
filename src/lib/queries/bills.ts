@@ -131,27 +131,31 @@ function extractProposerName(billName: string): string | null {
 }
 
 export async function getBillDetail(billId: string): Promise<BillDetail | null> {
-  const plenary = await prisma.plenaryBill.findUnique({ where: { billId } });
-  if (!plenary) return null;
-
-  // 발의자 — Bill 테이블에서 매칭 시도. 안 되면 billName 파싱.
-  let proposer: BillDetail["proposer"] = null;
-  const billRow = await prisma.bill.findUnique({
-    where: { billId },
-    include: {
-      politician: {
-        select: {
-          name: true,
-          monaCd: true,
-          terms: {
-            where: { term: { positionType: "NATIONAL_ASSEMBLY", number: 22 } },
-            include: { party: true },
-            take: 1,
+  // PlenaryBill에 없는 발의 법안(본회의 처리 전)도 상세 페이지에서 보여줘야 함.
+  // 둘 다 없으면 진짜 404.
+  const [plenary, billRow] = await Promise.all([
+    prisma.plenaryBill.findUnique({ where: { billId } }),
+    prisma.bill.findUnique({
+      where: { billId },
+      include: {
+        politician: {
+          select: {
+            name: true,
+            monaCd: true,
+            terms: {
+              where: { term: { positionType: "NATIONAL_ASSEMBLY", number: 22 } },
+              include: { party: true },
+              take: 1,
+            },
           },
         },
       },
-    },
-  });
+    }),
+  ]);
+  if (!plenary && !billRow) return null;
+
+  // 발의자 — Bill 테이블에서 매칭 시도. 안 되면 PlenaryBill billName 파싱.
+  let proposer: BillDetail["proposer"] = null;
   if (billRow) {
     const term = billRow.politician.terms[0];
     proposer = {
@@ -159,7 +163,7 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
       monaCd: billRow.politician.monaCd,
       party: term?.party ? { name: term.party.name, color: term.party.color } : null,
     };
-  } else {
+  } else if (plenary) {
     const parsed = extractProposerName(plenary.billName);
     if (parsed) {
       const found = await prisma.politicianTerm.findFirst({
@@ -225,16 +229,34 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
   }
   const partyTallies = [...tallyMap.values()].sort((a, b) => b.total - a.total);
 
+  // PlenaryBill 우선 (표결 집계 + 요약 있음). 없으면 Bill 정보로만 채움.
+  // procDate는 PlenaryBill엔 본회의 처리일, Bill엔 proposedAt(발의일)로 대체.
+  if (plenary) {
+    return {
+      billId: plenary.billId,
+      billName: plenary.billName,
+      billUrl: plenary.billUrl,
+      procDate: plenary.procDate,
+      voteTcnt: plenary.voteTcnt ?? 0,
+      yesTcnt: plenary.yesTcnt ?? 0,
+      noTcnt: plenary.noTcnt ?? 0,
+      blankTcnt: plenary.blankTcnt ?? 0,
+      summary: plenary.summary,
+      proposer,
+      partyTallies,
+    };
+  }
+  // billRow은 위 if (!plenary && !billRow) 분기에서 null 걸러진 후라 여기선 non-null.
   return {
-    billId: plenary.billId,
-    billName: plenary.billName,
-    billUrl: plenary.billUrl,
-    procDate: plenary.procDate,
-    voteTcnt: plenary.voteTcnt ?? 0,
-    yesTcnt: plenary.yesTcnt ?? 0,
-    noTcnt: plenary.noTcnt ?? 0,
-    blankTcnt: plenary.blankTcnt ?? 0,
-    summary: plenary.summary,
+    billId: billRow!.billId,
+    billName: billRow!.billName,
+    billUrl: billRow!.billUrl,
+    procDate: billRow!.proposedAt,
+    voteTcnt: 0,
+    yesTcnt: 0,
+    noTcnt: 0,
+    blankTcnt: 0,
+    summary: billRow!.summary,
     proposer,
     partyTallies,
   };

@@ -14,7 +14,7 @@ export function CareerList({ lines }: { lines: string[] }) {
 
   return (
     <>
-      <ul className="space-y-1.5 text-sm text-zinc-200">
+      <ul className="space-y-1.5 text-sm text-zinc-700">
         {visible.map((line, i) => (
           <li key={i} className="leading-snug">
             {line}
@@ -25,7 +25,7 @@ export function CareerList({ lines }: { lines: string[] }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900"
         >
           {expanded ? "접기 ▲" : `경력 전체 보기 (${total}개) ▼`}
         </button>

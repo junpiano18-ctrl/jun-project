@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BillsByYear } from "@/components/politician/BillsByYear";
 import { CareerList } from "@/components/politician/CareerList";
 import { PledgeCard } from "@/components/politician/PledgeCard";
+import { formatElectionLabel } from "@/lib/format/election-label";
 import { PoliticianPhoto } from "@/components/politician/PoliticianPhoto";
 import { NotableVotes } from "@/components/politician/NotableVotes";
 import { VoteHistory } from "@/components/politician/VoteHistory";
@@ -131,20 +132,17 @@ export default async function PoliticianPage({
   const showPledges = pledges.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-zinc-100">
+    <div className="min-h-screen">
       <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
         <Link
           href="/map"
-          className="mb-5 inline-flex items-center text-sm text-zinc-500 hover:text-zinc-200"
+          className="mb-5 inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900"
         >
           ← 지도로 돌아가기
         </Link>
 
         {/* 헤더 카드 */}
-        <section
-          className="overflow-hidden rounded-xl"
-          style={{ backgroundColor: "#1a1a1a" }}
-        >
+        <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
           <div aria-hidden className="h-1" style={{ backgroundColor: partyColor }} />
           <div className="p-5 sm:p-6">
             {currentTerm && currentTerm.status !== "ACTIVE" && (
@@ -165,7 +163,7 @@ export default async function PoliticianPage({
               />
               <div className="min-w-0 flex-1 pt-1">
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight text-white">
+                  <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
                     {politician.name}
                   </h1>
                   {politician.hanjaName && (
@@ -203,9 +201,9 @@ export default async function PoliticianPage({
                   </p>
                 )}
                 {currentTerm?.additionalRole && (
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-300">
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-600">
                     현재 겸직:{" "}
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-zinc-900">
                       {currentTerm.additionalRole}
                     </span>
                     {currentTerm.additionalRoleStartDate && (
@@ -222,18 +220,18 @@ export default async function PoliticianPage({
                   </p>
                 )}
                 {currentTerm?.courtRulingSummary && (
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-300">
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-600">
                     법원 판결:{" "}
                     {currentTerm.courtRulingDate && (
-                      <span className="text-white">
+                      <span className="text-zinc-900">
                         {formatKoreanDate(currentTerm.courtRulingDate)}{" "}
                       </span>
                     )}
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-zinc-900">
                       {currentTerm.courtRulingSummary}
                     </span>
                     {currentTerm.courtRulingFinal && (
-                      <span className="ml-1.5 inline-block rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-200">
+                      <span className="ml-1.5 inline-block rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700">
                         확정
                       </span>
                     )}
@@ -245,7 +243,7 @@ export default async function PoliticianPage({
                   </p>
                 )}
                 {dDay !== null && (
-                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-semibold text-zinc-100">
+                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700">
                     ⏳ 아직 {dDay}일 더 일해야 해요 💪
                   </div>
                 )}
@@ -261,18 +259,18 @@ export default async function PoliticianPage({
 
           {showAttendance && (
             <Card title="전체 회의 출석">
-              <p className="text-base leading-relaxed text-zinc-200">
+              <p className="text-base leading-relaxed text-zinc-700">
                 전체 회의{" "}
-                <span className="text-xl font-bold text-white">
+                <span className="text-xl font-bold text-zinc-900">
                   {voteSession}번
                 </span>{" "}
                 중{" "}
-                <span className="text-xl font-bold text-white">
+                <span className="text-xl font-bold text-zinc-900">
                   {voteAttend}번
                 </span>{" "}
                 표결에 참여했어요
               </p>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -289,21 +287,21 @@ export default async function PoliticianPage({
 
           {showBills && (
             <Card title="직접 낸 법안">
-              <p className="text-base leading-relaxed text-zinc-200">
+              <p className="text-base leading-relaxed text-zinc-700">
                 이번 임기에 법안{" "}
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold text-zinc-900">
                   {billProposed}개
                 </span>
                 를 냈어요
                 {billPassed !== null &&
                   (billPassed === 0 ? (
-                    <span className="block mt-1 text-sm text-zinc-400">
+                    <span className="block mt-1 text-sm text-zinc-500">
                       아직 통과된 법안이 없어요
                     </span>
                   ) : (
-                    <span className="block mt-1 text-sm text-zinc-300">
+                    <span className="block mt-1 text-sm text-zinc-600">
                       그중{" "}
-                      <span className="font-bold text-white">{billPassed}개</span>
+                      <span className="font-bold text-zinc-900">{billPassed}개</span>
                       가 통과됐어요 ✅
                     </span>
                   ))}
@@ -347,15 +345,15 @@ export default async function PoliticianPage({
                 {committees.map((c, i) => (
                   <li
                     key={i}
-                    className="flex items-start gap-3 rounded-lg bg-zinc-900/60 px-3 py-2.5"
+                    className="flex items-start gap-3 rounded-lg bg-zinc-50 px-3 py-2.5"
                   >
                     <span
                       aria-hidden
                       className="mt-1.5 h-2 w-2 flex-none rounded-full"
-                      style={{ backgroundColor: !c.end ? partyColor : "#52525b" }}
+                      style={{ backgroundColor: !c.end ? partyColor : "#a1a1aa" }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-white">
+                      <div className="text-sm font-semibold text-zinc-900">
                         {c.name}
                       </div>
                       <div className="text-xs text-zinc-500">
@@ -381,11 +379,11 @@ export default async function PoliticianPage({
 
           {showAssets && latestAsset && (
             <Card title="신고 재산">
-              <div className="text-3xl font-bold tabular-nums text-white">
+              <div className="text-3xl font-bold tabular-nums text-zinc-900">
                 {assetTotal}
               </div>
               {assetChange && (
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-300">
+                <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-600">
                   {assetChange.icon && <span>{assetChange.icon}</span>}
                   <span>{assetChange.text}</span>
                 </p>
@@ -405,7 +403,7 @@ export default async function PoliticianPage({
 
           {/* 연간 세비 — 항상 표시 (고정값) */}
           <Card title="연간 월급 (세금으로 지급)">
-            <div className="text-xl font-bold text-white">{ANNUAL_SALARY}</div>
+            <div className="text-xl font-bold text-zinc-900">{ANNUAL_SALARY}</div>
             <p className="mt-3 text-xs text-zinc-500">
               출처: 국회사무처 공개 자료
             </p>
@@ -413,21 +411,63 @@ export default async function PoliticianPage({
 
           {showPledges && (
             <Card title="선거 공약" id="pledges">
-              <ul className="space-y-3">
-                {pledges.map((p) => (
-                  <PledgeCard
-                    key={p.id}
-                    pledge={{
-                      id: p.id,
-                      category: p.category,
-                      title: p.title,
-                      originalText: p.originalText,
-                      easySummary: p.easySummary,
-                      status: p.status,
-                    }}
-                  />
-                ))}
-              </ul>
+              {(() => {
+                // 선거일별 그룹핑. 같은 electionDate끼리 묶고, electionDate=null은 "기타" 그룹.
+                const groups = new Map<string, typeof pledges>();
+                for (const p of pledges) {
+                  const key = p.electionDate
+                    ? p.electionDate.toISOString().slice(0, 10)
+                    : "unknown";
+                  const list = groups.get(key) ?? [];
+                  list.push(p);
+                  groups.set(key, list);
+                }
+                // 최근 선거부터 (key desc). "unknown"은 맨 뒤.
+                const sortedKeys = [...groups.keys()].sort((a, b) => {
+                  if (a === "unknown") return 1;
+                  if (b === "unknown") return -1;
+                  return b.localeCompare(a);
+                });
+                return (
+                  <div className="space-y-5">
+                    {sortedKeys.map((key) => {
+                      const items = groups.get(key)!;
+                      const label =
+                        key === "unknown"
+                          ? "선거 정보 미확인"
+                          : formatElectionLabel(items[0].electionDate) ?? "선거";
+                      return (
+                        <div key={key}>
+                          {/* 한 의원이 여러 선거 공약을 가질 때만 의미 있는 그룹 헤더.
+                             단일 그룹이어도 짧게 표시해 출처 명확성↑. */}
+                          <h3 className="mb-2 text-xs font-semibold text-zinc-500">
+                            📅 {label}{" "}
+                            <span className="font-normal text-zinc-400">
+                              · {items.length}개 공약
+                            </span>
+                          </h3>
+                          <ul className="space-y-3">
+                            {items.map((p) => (
+                              <PledgeCard
+                                key={p.id}
+                                pledge={{
+                                  id: p.id,
+                                  category: p.category,
+                                  title: p.title,
+                                  originalText: p.originalText,
+                                  easySummary: p.easySummary,
+                                  status: p.status,
+                                  electionDate: p.electionDate,
+                                }}
+                              />
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               <p className="mt-3 text-xs text-zinc-500">
                 출처: 중앙선거관리위원회
               </p>
@@ -436,16 +476,16 @@ export default async function PoliticianPage({
         </div>
 
         <footer className="mt-8 space-y-1 text-center text-xs text-zinc-500">
-          <p className="font-semibold text-zinc-300">
+          <p className="font-semibold text-zinc-700">
             판단은 유권자가, 데이터는 내머슴닷컴이
           </p>
           <p>출처: 열린국회정보 · 중앙선거관리위원회 · 공직자윤리위원회</p>
           <p className="flex items-center justify-center gap-3 pt-2">
-            <Link href="/privacy" className="hover:text-zinc-300">
+            <Link href="/privacy" className="hover:text-zinc-900">
               개인정보처리방침
             </Link>
-            <span aria-hidden className="text-zinc-700">·</span>
-            <Link href="/terms" className="hover:text-zinc-300">
+            <span aria-hidden className="text-zinc-300">·</span>
+            <Link href="/terms" className="hover:text-zinc-900">
               이용약관
             </Link>
           </p>
@@ -467,10 +507,9 @@ function Card({
   return (
     <section
       id={id}
-      className="scroll-mt-6 rounded-xl p-5"
-      style={{ backgroundColor: "#1a1a1a" }}
+      className="scroll-mt-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm"
     >
-      <h2 className="mb-3 text-sm font-semibold text-zinc-400">{title}</h2>
+      <h2 className="mb-3 text-sm font-semibold text-zinc-500">{title}</h2>
       {children}
     </section>
   );

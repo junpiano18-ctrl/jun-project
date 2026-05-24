@@ -81,8 +81,11 @@ export function SearchBar() {
     if (composing) return;
     const q = value.trim();
     if (!q) {
+      // 빈 쿼리 시 결과 비우기 — debounced fetch의 cleanup 성격. effect 외부 처리 어려움.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setResults({ politicians: [], regions: [], bills: [] });
       setLoading(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
     setLoading(true);
@@ -114,9 +117,9 @@ export function SearchBar() {
       router.push(`/bills/${item.data.billId}`);
       return;
     }
-    const monaCd =
-      item.kind === "politician" ? item.data.monaCd : item.data.politician?.monaCd;
-    if (!monaCd) return;
+    const routeId =
+      item.kind === "politician" ? item.data.routeId : item.data.politician?.routeId;
+    if (!routeId) return;
     setOpen(false);
     setValue("");
     setResults({ politicians: [], regions: [], bills: [] });
@@ -131,13 +134,13 @@ export function SearchBar() {
       setToast("비례대표 의원입니다. 상세 페이지로 이동합니다.");
       setTimeout(() => {
         setToast(null);
-        router.push(`/politicians/${monaCd}`);
+        router.push(`/politicians/${routeId}`);
       }, 900);
       return;
     }
 
-    // 이름 / 동네 검색 모두 → 지도 focus. FocusedPopup이 flyTo + popup 처리.
-    router.push(`/map?focus=${monaCd}`);
+    // 이름 / 동네 검색 모두 → 지도 focus. FocusedPopup이 routeId로 flyTo + popup 처리.
+    router.push(`/map?focus=${routeId}`);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -206,7 +209,7 @@ export function SearchBar() {
             const idx = runningIdx;
             return (
               <button
-                key={`p-${p.monaCd}`}
+                key={`p-${p.routeId}`}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); goItem({ kind: "politician", data: p }); }}
                 onMouseEnter={() => setFocusedIdx(idx)}

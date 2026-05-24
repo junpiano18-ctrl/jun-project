@@ -51,6 +51,8 @@ export function AddressSearch() {
   // SSR 안정성을 위해 첫 렌더는 고정값, 마운트 후 랜덤 교체 → hydration mismatch 회피.
   const [placeholderDong, setPlaceholderDong] = useState(DONG_EXAMPLES[0]);
   useEffect(() => {
+    // SSR/CSR 불일치 방지를 위해 마운트 후에만 랜덤화 — useState 초기값에 넣으면 hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlaceholderDong(DONG_EXAMPLES[Math.floor(Math.random() * DONG_EXAMPLES.length)]);
   }, []);
 
@@ -77,10 +79,13 @@ export function AddressSearch() {
     if (composing) return;
     const q = value.trim();
     if (!q) {
+      // 빈 쿼리 시 결과 비우기 — debounced fetch의 cleanup 성격. effect 외부에서 처리하기 어려움.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setRegions([]);
       setPoliticians([]);
       setBills([]);
       setLoading(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
     setLoading(true);
@@ -111,10 +116,10 @@ export function AddressSearch() {
     if (item.kind === "region") {
       router.push(`/my-reps?adm=${item.data.admCd}`);
     } else if (item.kind === "politician") {
-      router.push(`/politicians/${item.data.monaCd}`);
+      router.push(`/politicians/${item.data.routeId}`);
     } else {
-      // 법안 → 외부 의안정보시스템
-      window.open(item.data.billUrl, "_blank", "noopener,noreferrer");
+      // 법안 → 내부 상세 페이지. 외부 의안정보시스템 링크는 상세 페이지 안에서 제공.
+      router.push(`/bills/${item.data.billId}`);
     }
   }
 
@@ -146,19 +151,13 @@ export function AddressSearch() {
 
   const showDropdown = open && value.trim().length > 0;
   const empty = !loading && items.length === 0;
-  const firstItem = items.length > 0 ? (focusedIdx >= 0 ? items[focusedIdx] : items[0]) : null;
-  const submitLabel =
-    firstItem?.kind === "politician"
-      ? "의원 정보 보기 →"
-      : firstItem?.kind === "bill"
-      ? "법안 원문 보기 →"
-      : "우리 동네 일꾼 보기 →";
+  // submit은 Enter 키 또는 드롭다운 항목 클릭으로 처리 (큰 버튼 제거됨).
 
   let runningIdx = -1;
 
   return (
     <div ref={wrapperRef} className="relative w-full">
-      <div className="flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-3 shadow-sm transition focus-within:border-zinc-900 focus-within:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:focus-within:border-zinc-100">
+      <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm transition focus-within:border-[#7C3AED] focus-within:shadow-md focus-within:ring-2 focus-within:ring-[#EDE9FE]">
         <span aria-hidden className="text-lg text-zinc-400">🔍</span>
         <input
           ref={inputRef}
@@ -183,14 +182,7 @@ export function AddressSearch() {
         />
       </div>
 
-      <button
-        type="button"
-        onClick={onSubmit}
-        disabled={items.length === 0}
-        className="mt-3 w-full rounded-xl bg-zinc-900 px-4 py-3 text-base font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
-      >
-        {submitLabel}
-      </button>
+      {/* 큰 submit 버튼은 제거 — 검색은 자동완성 드롭다운 선택 또는 Enter 키로 처리. */}
 
       {showDropdown && (
         <div className="absolute left-0 right-0 top-[64px] z-20 mt-1 max-h-[420px] overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
@@ -233,7 +225,7 @@ export function AddressSearch() {
             const idx = runningIdx;
             return (
               <button
-                key={`p-${p.monaCd}-${idx}`}
+                key={`p-${p.routeId}-${idx}`}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); go({ kind: "politician", data: p }); }}
                 onMouseEnter={() => setFocusedIdx(idx)}
@@ -258,7 +250,7 @@ export function AddressSearch() {
                     )}
                   </div>
                   <div className="truncate text-xs text-zinc-500">
-                    {p.party?.name ?? "무소속"} · {p.districtName}
+                    {p.positionTitle} · {p.party?.name ?? "무소속"} · {p.districtName}
                   </div>
                 </div>
               </button>

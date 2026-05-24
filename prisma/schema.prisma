@@ -224,6 +224,7 @@ model Pledge {
   summaryUpdatedAt DateTime?
   status           String?   // 레거시 — 이행/미이행 판단 사용 안 함 (정책상 null 유지)
   source           String    @default("중앙선거관리위원회")
+  electionDate     DateTime? // 출처 선거일 (sgId에서 파싱). UI에 "2022년 6월 지방선거" 같이 표시.
 
   politicianTerm PoliticianTerm @relation(fields: [politicianTermId], references: [id])
 

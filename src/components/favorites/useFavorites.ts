@@ -19,6 +19,8 @@ export function useFavorites(): {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // SSR hydration mismatch 방지 — 서버 렌더 시 mounted=false, 클라 mount 후 true.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     setFavorites(loadFavorites());
     function refresh() {

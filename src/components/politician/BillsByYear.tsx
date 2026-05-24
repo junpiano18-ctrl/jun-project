@@ -86,14 +86,14 @@ export function BillsByYear({ bills }: { bills: BillRow[] }) {
       {groups.map((g) => {
         const open = openYears.has(g.yearKey);
         return (
-          <div key={String(g.yearKey)} className="rounded-lg bg-zinc-900/60">
+          <div key={String(g.yearKey)} className="rounded-lg bg-zinc-50">
             <button
               type="button"
               onClick={() => toggle(g.yearKey)}
               aria-expanded={open}
               className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
             >
-              <span className="text-sm font-semibold text-zinc-100">
+              <span className="text-sm font-semibold text-zinc-900">
                 {g.yearLabel}{" "}
                 <span className="text-zinc-500">({g.bills.length}건)</span>
               </span>
@@ -127,17 +127,17 @@ function BillItem({ bill }: { bill: BillRow }) {
       ? `${proposed.getFullYear()}년 ${proposed.getMonth() + 1}월 발의`
       : null;
   return (
-    <li className="rounded-lg bg-zinc-950/60 p-3">
+    <li className="rounded-lg border border-zinc-200 bg-white p-3">
       <div className="flex items-start gap-2">
         <span aria-hidden className="text-sm">
           {meta.icon}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-snug text-zinc-100">
+          <p className="text-sm font-semibold leading-snug text-zinc-900">
             {bill.billName}
           </p>
           {bill.summary && (
-            <p className="mt-1 text-xs text-zinc-400">🔍 쉽게 말하면: {bill.summary}</p>
+            <p className="mt-1 text-xs text-zinc-600">🔍 쉽게 말하면: {bill.summary}</p>
           )}
           <p className="mt-1.5 text-[11px] text-zinc-500">
             {meta.label}
@@ -147,7 +147,7 @@ function BillItem({ bill }: { bill: BillRow }) {
             href={bill.billUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1.5 inline-block text-xs font-medium text-zinc-300 hover:text-white"
+            className="mt-1.5 inline-block text-xs font-medium text-zinc-600 hover:text-zinc-900"
           >
             → 국회에서 원문 보기
           </a>

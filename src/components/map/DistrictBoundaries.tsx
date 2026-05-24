@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Polygon, Popup } from "react-leaflet";
-import type { LatLngExpression, LeafletMouseEvent, Polygon as LeafletPolygon } from "leaflet";
+import type { LatLngExpression, Polygon as LeafletPolygon } from "leaflet";
 import {
   PoliticianCard,
   VacantDistrictCard,
@@ -154,10 +154,10 @@ function DistrictPolygon({
 
   const eventHandlers = useMemo(
     () => ({
-      mouseover: (_e: LeafletMouseEvent) => {
+      mouseover: () => {
         if (featureKey) onHover?.(featureKey);
       },
-      mouseout: (_e: LeafletMouseEvent) => {
+      mouseout: () => {
         if (featureKey) onHover?.(null);
       },
     }),

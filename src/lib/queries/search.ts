@@ -2,9 +2,10 @@ import { prisma } from "@/lib/db";
 import dongMapping from "@/lib/geo/dong-to-district.json";
 
 export type SearchPoliticianResult = {
-  monaCd: string;
+  routeId: string; // monaCd(국회의원) 또는 necId(단체장·교육감). 정치인 상세/지도 focus 키.
   name: string;
   districtName: string;
+  positionTitle: string; // "국회의원" / "시·도지사" / "교육감" / "시·군·구청장"
   isProportional: boolean;
   party: { name: string; color: string } | null;
 };
@@ -70,33 +71,60 @@ function diversifyByDistrict(entries: DongEntry[], cap: number): DongEntry[] {
   return out;
 }
 
-// 법안명 키워드 검색. take 6개로 제한. 22대 한정.
+// 법안명 키워드 검색. 22대 한정. take 6개로 제한.
+// Bill(의원 발의) + PlenaryBill(본회의 처리 안건 — 대안·위원회안 포함) 둘 다 검색해서 합침.
+// 같은 billId가 양쪽에 있으면 Bill(발의자 메타 있는 쪽) 우선.
 export async function searchBillsByKeyword(q: string): Promise<SearchBillResult[]> {
   const query = q.trim();
   if (query.length < 2) return []; // 1자는 노이즈 — 2자 이상만
 
-  const rows = await prisma.bill.findMany({
-    where: { billName: { contains: query } },
-    orderBy: { proposedAt: "desc" },
-    take: 6,
-    include: {
-      politician: {
-        select: {
-          monaCd: true,
-          name: true,
-          terms: {
-            where: { term: { positionType: "NATIONAL_ASSEMBLY", number: 22 } },
-            include: { party: true },
-            take: 1,
+  const TAKE = 6;
+
+  const [billRows, plenaryRows] = await Promise.all([
+    prisma.bill.findMany({
+      where: { billName: { contains: query } },
+      orderBy: { proposedAt: "desc" },
+      take: TAKE,
+      include: {
+        politician: {
+          select: {
+            monaCd: true,
+            name: true,
+            terms: {
+              where: { term: { positionType: "NATIONAL_ASSEMBLY", number: 22 } },
+              include: { party: true },
+              take: 1,
+            },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.plenaryBill.findMany({
+      where: { billName: { contains: query } },
+      orderBy: { procDate: "desc" },
+      take: TAKE,
+      select: {
+        billId: true,
+        billName: true,
+        billUrl: true,
+        summary: true,
+        procDate: true,
+        voteTcnt: true,
+        yesTcnt: true,
+        noTcnt: true,
+      },
+    }),
+  ]);
 
-  return rows.map((b) => {
+  // Bill을 우선 채우고, PlenaryBill 중 같은 billId 아닌 것만 추가.
+  const seen = new Set<string>();
+  const out: SearchBillResult[] = [];
+
+  for (const b of billRows) {
+    if (seen.has(b.billId)) continue;
+    seen.add(b.billId);
     const term = b.politician.terms[0];
-    return {
+    out.push({
       billId: b.billId,
       billName: b.billName,
       billUrl: b.billUrl,
@@ -110,28 +138,74 @@ export async function searchBillsByKeyword(q: string): Promise<SearchBillResult[
           ? { name: term.party.name, color: term.party.color }
           : null,
       },
-    };
-  });
+    });
+  }
+
+  for (const p of plenaryRows) {
+    if (seen.has(p.billId)) continue;
+    if (out.length >= TAKE) break;
+    seen.add(p.billId);
+    // PlenaryBill에는 발의자(politician) 정보 없음. 표결 결과로 상태 추정.
+    const status: SearchBillResult["billStatus"] =
+      p.voteTcnt && p.yesTcnt && p.noTcnt !== null && p.yesTcnt > p.noTcnt
+        ? "PASSED"
+        : "REJECTED";
+    out.push({
+      billId: p.billId,
+      billName: p.billName,
+      billUrl: p.billUrl ?? "",
+      summary: p.summary,
+      billStatus: status,
+      proposedAt: p.procDate ? p.procDate.toISOString() : null,
+      politician: null,
+    });
+  }
+
+  return out.slice(0, TAKE);
 }
 
-// 22대 의원 이름 부분 일치 검색. 정확 일치 > 시작 일치 > 포함 일치 우선순위, 최대 5명.
+// 22대 국회의원 + 8회 광역단체장·교육감·기초단체장 이름 부분 일치 검색.
+// 정확 일치 > 시작 일치 > 포함 일치 우선순위, 최대 5명.
+// 한 사람이 여러 임기에 등록되어 있어도 routeId 단위로 dedupe (NA 22대 우선).
 export async function searchPoliticiansByName(q: string): Promise<SearchPoliticianResult[]> {
   const query = q.trim();
   if (query.length < 1) return [];
 
   // 후보를 넉넉히 가져온 뒤 자바스크립트로 정렬 (DB는 contains만).
+  // 4개 직급(현 임기) 모두 포함.
   const rows = await prisma.politicianTerm.findMany({
     where: {
-      term: { positionType: "NATIONAL_ASSEMBLY", number: 22 },
+      OR: [
+        { term: { positionType: "NATIONAL_ASSEMBLY", number: 22 } },
+        { term: { positionType: "METRO_GOVERNOR", number: 8 } },
+        { term: { positionType: "EDUCATION_SUPERINTENDENT", number: 8 } },
+        { term: { positionType: "LOCAL_GOVERNOR", number: 8 } },
+      ],
       politician: { name: { contains: query } },
     },
-    include: { politician: true, district: true, party: true },
-    take: 20,
+    include: { politician: true, district: true, party: true, term: true },
+    take: 40,
     orderBy: { politician: { name: "asc" } },
   });
 
-  const ranked = rows
-    .filter((r) => r.politician.monaCd)
+  // 같은 정치인이 여러 임기에 걸쳐 있을 수 있음. routeId 첫 등장만 유지하되,
+  // 우선순위는 NA 22대 > 단체장/교육감 8회 (현직 국회의원이 우선 표시되도록).
+  const priorityOf = (positionType: string): number =>
+    positionType === "NATIONAL_ASSEMBLY" ? 0 : 1;
+  const seen = new Map<string, typeof rows[number]>();
+  for (const r of rows) {
+    const routeId = r.politician.monaCd ?? r.politician.necId;
+    if (!routeId) continue;
+    const existing = seen.get(routeId);
+    if (
+      !existing ||
+      priorityOf(r.term.positionType) < priorityOf(existing.term.positionType)
+    ) {
+      seen.set(routeId, r);
+    }
+  }
+
+  const ranked = [...seen.values()]
     .map((r) => {
       const name = r.politician.name;
       let rank = 2;
@@ -139,13 +213,17 @@ export async function searchPoliticiansByName(q: string): Promise<SearchPolitici
       else if (name.startsWith(query)) rank = 1;
       return { r, rank };
     })
-    .sort((a, b) => a.rank - b.rank || a.r.politician.name.localeCompare(b.r.politician.name, "ko"))
+    .sort(
+      (a, b) =>
+        a.rank - b.rank || a.r.politician.name.localeCompare(b.r.politician.name, "ko"),
+    )
     .slice(0, 5);
 
   return ranked.map(({ r }) => ({
-    monaCd: r.politician.monaCd as string,
+    routeId: (r.politician.monaCd ?? r.politician.necId) as string,
     name: r.politician.name,
     districtName: r.district.name,
+    positionTitle: r.positionTitle,
     isProportional: r.district.isProportional,
     party: r.party ? { name: r.party.name, color: r.party.color } : null,
   }));
@@ -211,12 +289,14 @@ export async function searchByRegion(q: string): Promise<SearchRegionResult[]> {
 
   return picked.map((e) => {
     const t = e.districtName ? politicianByDistrict.get(e.districtName) : undefined;
+    // region 검색 결과는 지역구 NA만 매핑되므로 routeId == monaCd.
     const politician =
       t && t.politician.monaCd
         ? {
-            monaCd: t.politician.monaCd,
+            routeId: t.politician.monaCd,
             name: t.politician.name,
             districtName: t.district.name,
+            positionTitle: t.positionTitle,
             isProportional: t.district.isProportional,
             party: t.party ? { name: t.party.name, color: t.party.color } : null,
           }

@@ -29,9 +29,10 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <body className="min-h-full flex flex-col text-zinc-900">
         <SiteHeader />
-        {children}
+        {/* flex-1 wrapper로 페이지 컨텐츠가 남는 공간 채워 푸터를 하단에 고정. */}
+        <div className="flex flex-1 flex-col">{children}</div>
         <GlobalFooter />
       </body>
     </html>

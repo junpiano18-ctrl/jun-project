@@ -120,6 +120,27 @@ export async function getCommitteeSchedules(): Promise<ScheduleEntry[]> {
     }));
 }
 
+export type TodaySchedule = {
+  date: string;
+  plenary: ScheduleEntry[];
+  committee: ScheduleEntry[];
+};
+
+// 오늘 열리는 본회의 + 위원회 일정.
+// 일정 API는 외부라 실패해도 페이지 깨지지 않게 .catch로 빈 배열 반환.
+export async function getTodaySchedule(now = new Date()): Promise<TodaySchedule> {
+  const today = now.toISOString().slice(0, 10);
+  const [plenary, committee] = await Promise.all([
+    getPlenarySchedules().catch(() => []),
+    getCommitteeSchedules().catch(() => []),
+  ]);
+  return {
+    date: today,
+    plenary: plenary.filter((e) => e.date === today),
+    committee: committee.filter((e) => e.date === today),
+  };
+}
+
 // 월요일 00:00 ~ 일요일 23:59:59 (KST 단순 계산: 서버 timezone 영향 받음 — 운영은 UTC+9 가정)
 export function thisWeekRange(now = new Date()): { from: string; to: string } {
   const day = now.getDay(); // 0=일, 1=월

@@ -24,6 +24,8 @@ export function FocusedPopup({ pins, onFocus }: Props) {
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
+    // URL focus 변경에 따라 popup 표시/숨김 + flyTo. 본질적으로 effect-driven 상태.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!focused) {
       handledRef.current = null;
       setShown(false);
@@ -33,6 +35,7 @@ export function FocusedPopup({ pins, onFocus }: Props) {
     if (handledRef.current === focused.routeId) return;
     handledRef.current = focused.routeId;
     setShown(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     map.flyTo([focused.lat, focused.lng], 12, { duration: 0.9 });
     onFocus?.(focused.layer);

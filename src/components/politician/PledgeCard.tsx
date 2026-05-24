@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatElectionLabel } from "@/lib/format/election-label";
 
 type Pledge = {
   id: string;
@@ -9,6 +10,7 @@ type Pledge = {
   originalText: string;
   easySummary: string | null;
   status: string | null;
+  electionDate: Date | string | null;
 };
 
 // 공약 카드 — 원문 항상 표시 + "쉽게 보기" 토글로 AI 요약 노출.
@@ -19,9 +21,17 @@ type Pledge = {
 export function PledgeCard({ pledge }: { pledge: Pledge }) {
   const [open, setOpen] = useState(false);
   const hasSummary = Boolean(pledge.easySummary);
+  const electionLabel = formatElectionLabel(pledge.electionDate);
 
   return (
     <li className="rounded border border-zinc-200 p-3.5 dark:border-zinc-800">
+      {/* 출처 선거 라벨 — 본문 위 작은 텍스트 */}
+      {electionLabel && (
+        <p className="mb-1.5 text-[11px] text-zinc-500">
+          📅 {electionLabel} 당선 공약
+        </p>
+      )}
+
       {/* 헤더: 카테고리 + 제목 */}
       <div className="mb-2 flex items-baseline gap-2">
         {pledge.category && (

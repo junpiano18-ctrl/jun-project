@@ -20,6 +20,10 @@ import { PrismaClient } from "../src/generated/prisma/client";
 const ENDPOINT =
   "https://apis.data.go.kr/9760000/ElecPrmsInfoInqireService/getCnddtElecPrmsInfoInqire";
 const SG_ID_8TH = "20220601";
+// sgId YYYYMMDD → Date. UTC 자정으로 normalize (timezone-free 비교).
+const ELECTION_DATE_8TH = new Date(
+  `${SG_ID_8TH.slice(0, 4)}-${SG_ID_8TH.slice(4, 6)}-${SG_ID_8TH.slice(6, 8)}T00:00:00Z`,
+);
 
 type SgTypecode = "3" | "11" | "4";
 
@@ -176,6 +180,7 @@ async function syncTarget(
                 title: p.title,
                 category: p.category,
                 originalText: p.originalText,
+                electionDate: ELECTION_DATE_8TH,
                 // source는 schema default "중앙선거관리위원회".
                 // easySummary/status는 의도적으로 set 안 함.
               },
@@ -183,6 +188,7 @@ async function syncTarget(
                 title: p.title,
                 category: p.category,
                 originalText: p.originalText,
+                electionDate: ELECTION_DATE_8TH,
                 // easySummary는 update에서도 건드리지 않음 — 본문이 바뀌면 summary는 별도 재생성 필요.
               },
             });

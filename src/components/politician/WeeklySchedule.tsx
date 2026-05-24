@@ -32,15 +32,15 @@ export function WeeklySchedule({ data, partyColor }: { data: WeeklyScheduleResul
   const hasToday = all.some((e) => e.date === today);
 
   return (
-    <section className="rounded-xl p-5" style={{ backgroundColor: "#1a1a1a" }}>
+    <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-400">이번 주 일정</h2>
+        <h2 className="text-sm font-semibold text-zinc-500">이번 주 일정</h2>
         {hasToday && (
           <a
             href={LIVE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full bg-red-600/90 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-white hover:bg-red-500"
+            className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-white hover:bg-red-500"
           >
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
             LIVE · 의사중계 보기
@@ -60,7 +60,7 @@ export function WeeklySchedule({ data, partyColor }: { data: WeeklyScheduleResul
             <li
               key={`${e.date}-${e.kind}-${i}`}
               className={`rounded-lg px-3 py-2.5 ${
-                isToday ? "bg-red-950/40 ring-1 ring-red-600/50" : "bg-zinc-900/60"
+                isToday ? "bg-red-50 ring-1 ring-red-200" : "bg-zinc-50"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -69,11 +69,11 @@ export function WeeklySchedule({ data, partyColor }: { data: WeeklyScheduleResul
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <span className="text-sm font-semibold text-white">
+                    <span className="text-sm font-semibold text-zinc-900">
                       {md} ({dow})
                     </span>
                     {e.time && (
-                      <span className="text-xs text-zinc-400">{e.time}</span>
+                      <span className="text-xs text-zinc-500">{e.time}</span>
                     )}
                     {isToday && (
                       <span
@@ -84,7 +84,7 @@ export function WeeklySchedule({ data, partyColor }: { data: WeeklyScheduleResul
                       </span>
                     )}
                   </div>
-                  <div className="mt-0.5 text-sm text-zinc-200">
+                  <div className="mt-0.5 text-sm text-zinc-700">
                     {subtitle} · {e.title}
                   </div>
                   {agenda && (
@@ -97,7 +97,7 @@ export function WeeklySchedule({ data, partyColor }: { data: WeeklyScheduleResul
                       href={e.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 inline-block text-[11px] font-medium text-zinc-400 hover:text-white"
+                      className="mt-1 inline-block text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
                     >
                       → 일정 원문 보기
                     </a>

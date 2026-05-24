@@ -3,6 +3,11 @@
 @import "leaflet.markercluster/dist/MarkerCluster.css";
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
+/* Tailwind v4: dark: variant를 class 기반으로 override.
+   .dark 클래스를 어디에도 붙이지 않으므로 모든 dark:* 유틸리티가 항상 비활성화 됨.
+   (기본값이 prefers-color-scheme이라 OS 다크 모드 감지를 끄려면 이게 필요.) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Leaflet MapContainer는 부모에 명시적 height가 필요하다.
    html/body까지 height 체인이 끊기지 않게 보장. */
 html,
@@ -10,23 +15,29 @@ body {
   height: 100%;
 }
 
+/* 사이트 메인 컬러: 바이올렛. 정당색과 구별되는 중립적인 UI 색.
+   --color-primary*는 Tailwind v4 @theme로 등록 → bg-primary, text-primary 등으로 사용 가능. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8f5ff; /* 연한 보라빛 페이지 배경 */
+  --foreground: #1a1a1a;
+  --color-primary: #7c3aed;
+  --color-primary-light: #ede9fe;
+  --color-primary-dark: #5b21b6;
+  color-scheme: light;
+}
+
+html {
+  background: var(--background);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--color-primary);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-dark: var(--color-primary-dark);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
