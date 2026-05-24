@@ -35,13 +35,18 @@ export function VoterDrilldownButton({
   className,
 }: ButtonProps) {
   const m = RESULT_META[result];
+  // 모바일: 최소 hit area 44x44 (iOS HIG). 데스크톱: 살짝 컴팩트.
+  // stopPropagation으로 상위 카드/시트 click 이벤트와 충돌 방지.
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       aria-expanded={active}
-      className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition ${
-        active ? "bg-zinc-100" : "hover:bg-zinc-50"
+      className={`inline-flex min-h-11 items-center gap-1 rounded-md border border-transparent px-3 py-2 transition active:scale-[0.98] md:min-h-7 md:px-2 md:py-1 ${
+        active ? "border-zinc-300 bg-zinc-100" : "hover:bg-zinc-50"
       } ${m.toneClass} ${className ?? ""}`}
     >
       <span aria-hidden>{m.icon}</span>

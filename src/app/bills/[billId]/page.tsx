@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BillShareButtons } from "@/components/bill/BillShareButtons";
 import { PartyTallyTable } from "@/components/bill/PartyTallyTable";
 import { VoterDrilldownGroup } from "@/components/bill/VoterDrilldown";
 import { splitBillName } from "@/lib/format/bill-name";
@@ -166,6 +167,18 @@ export default async function BillDetailPage({
             <p className="mt-3 text-xs text-zinc-500">
               숫자를 누르면 해당 의원 목록이 펼쳐져요 · 출처: 열린국회정보
             </p>
+            {/* SNS 공유 — 표결 결과 한눈에 보이게 이미지 카드 + 4채널 */}
+            <div className="mt-4 border-t border-zinc-100 pt-3">
+              <p className="mb-2 text-xs font-semibold text-zinc-500">공유</p>
+              <BillShareButtons
+                billId={bill.billId}
+                billName={bill.billName}
+                voteTcnt={total}
+                yesTcnt={yes}
+                noTcnt={no}
+                blankTcnt={blank}
+              />
+            </div>
           </Card>
           )}
 
