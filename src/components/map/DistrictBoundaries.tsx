@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Polygon, Popup } from "react-leaflet";
-import type { LatLngExpression, LeafletMouseEvent } from "leaflet";
+import type { LatLngExpression, LeafletMouseEvent, Polygon as LeafletPolygon } from "leaflet";
 import {
   PoliticianCard,
   VacantDistrictCard,
@@ -97,24 +97,13 @@ export default function DistrictBoundaries({ pins, hoveredKey, onHover }: Props)
         const positions = toPositions(f.geometry);
         const isHovered = featureKey !== undefined && featureKey === hoveredKey;
         return (
-          <Polygon
+          <DistrictPolygon
             key={f.properties.SGG_Code}
             positions={positions}
-            pathOptions={{
-              color: "#9ca3af",
-              weight: isHovered ? 2 : 1,
-              opacity: isHovered ? 1 : 0.6,
-              fillColor: color,
-              fillOpacity: isHovered ? 0.35 : 0,
-            }}
-            eventHandlers={{
-              mouseover: (_e: LeafletMouseEvent) => {
-                if (featureKey) onHover?.(featureKey);
-              },
-              mouseout: (_e: LeafletMouseEvent) => {
-                if (featureKey) onHover?.(null);
-              },
-            }}
+            color={color}
+            isHovered={isHovered}
+            featureKey={featureKey}
+            onHover={onHover}
           >
             <Popup>
               {pin ? (
@@ -123,9 +112,74 @@ export default function DistrictBoundaries({ pins, hoveredKey, onHover }: Props)
                 <VacantDistrictCard districtName={f.properties.SIDO_SGG} />
               )}
             </Popup>
-          </Polygon>
+          </DistrictPolygon>
         );
       })}
     </>
+  );
+}
+
+// 폴리곤 한 개를 메모이즈된 pathOptions/eventHandlers와 함께 렌더.
+// react-leaflet 5의 Polygon은 매 렌더마다 setStyle을 호출하므로
+// 250개 폴리곤이 동시에 매번 restyle 되는 걸 피해야 hover 강조가 안정적.
+// 또 hover 시 bringToFront로 markerPane 아래의 폴리곤이 다른 폴리곤에 가려지지 않게 한다.
+function DistrictPolygon({
+  positions,
+  color,
+  isHovered,
+  featureKey,
+  onHover,
+  children,
+}: {
+  positions: LatLngExpression[][];
+  color: string;
+  isHovered: boolean;
+  featureKey: string | undefined;
+  onHover?: (key: string | null) => void;
+  children: React.ReactNode;
+}) {
+  const polyRef = useRef<LeafletPolygon | null>(null);
+
+  const pathOptions = useMemo(
+    () => ({
+      // 호버 시엔 정당색 굵은 테두리, 평소엔 옅은 회색 얇은 선.
+      color: isHovered ? color : "#9ca3af",
+      weight: isHovered ? 3 : 1,
+      opacity: isHovered ? 1 : 0.6,
+      fillColor: color,
+      fillOpacity: isHovered ? 0.35 : 0,
+    }),
+    [color, isHovered],
+  );
+
+  const eventHandlers = useMemo(
+    () => ({
+      mouseover: (_e: LeafletMouseEvent) => {
+        if (featureKey) onHover?.(featureKey);
+      },
+      mouseout: (_e: LeafletMouseEvent) => {
+        if (featureKey) onHover?.(null);
+      },
+    }),
+    [featureKey, onHover],
+  );
+
+  // hover 상태가 켜지면 폴리곤을 overlayPane 안에서 맨 앞으로 끌어올린다.
+  // 인접 폴리곤이나 자기 위에 그려진 마커 그림자에 강조 테두리가 묻히지 않도록.
+  useEffect(() => {
+    if (isHovered && polyRef.current) {
+      polyRef.current.bringToFront();
+    }
+  }, [isHovered]);
+
+  return (
+    <Polygon
+      ref={polyRef}
+      positions={positions}
+      pathOptions={pathOptions}
+      eventHandlers={eventHandlers}
+    >
+      {children}
+    </Polygon>
   );
 }

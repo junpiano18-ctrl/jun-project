@@ -1,6 +1,7 @@
 "use client";
 
 import L from "leaflet";
+import { useMemo } from "react";
 import { Marker, Popup, Tooltip } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { PoliticianCard } from "@/components/politician/PoliticianCard";
@@ -73,40 +74,72 @@ export function LayerPinGroup({ layer, pins, onHoverDistrict }: Props) {
           ? normalizeDbDistrict(p.districtName)
           : null;
         return (
-          <Marker
+          <PinMarker
             key={`${layer}-${p.routeId}`}
-            position={[p.lat, p.lng]}
+            pin={p}
             icon={makeIcon(layer, color, vacant)}
-            eventHandlers={{
-              // 모바일 ghost click — touchend 후 발생하는 click이 map으로 전파돼
-              // popup이 즉시 닫히는 현상 차단.
-              click: (e) => {
-                L.DomEvent.stopPropagation(e.originalEvent);
-              },
-              mouseover: () => {
-                if (districtKey) onHoverDistrict?.(districtKey);
-              },
-              mouseout: () => {
-                if (districtKey) onHoverDistrict?.(null);
-              },
-            }}
-          >
-            <Tooltip direction="top" offset={[0, -8]}>
-              <strong>{p.name}</strong>
-              {vacant && <span style={{ color: "#a1a1aa" }}> · 현재 공석</span>}{" "}
-              · {p.districtName}
-            </Tooltip>
-            <Popup
-              // closeOnClick=true(기본)면 map click 때 닫힘. ghost click과 충돌.
-              // 닫기는 ✕ 버튼이나 다른 핀 탭(autoClose=true 기본)으로만.
-              closeOnClick={false}
-              autoClose={true}
-            >
-              <PoliticianCard pin={p} />
-            </Popup>
-          </Marker>
+            vacant={vacant}
+            districtKey={districtKey}
+            onHoverDistrict={onHoverDistrict}
+          />
         );
       })}
     </MarkerClusterGroup>
+  );
+}
+
+// 마커 한 개. eventHandlers/Tooltip 콘텐츠를 memoize해서
+// react-leaflet의 on/off 재바인딩을 매 렌더 churn 없이 유지 →
+// hover-> setHoveredDistrictKey가 안정적으로 fire 된다.
+function PinMarker({
+  pin,
+  icon,
+  vacant,
+  districtKey,
+  onHoverDistrict,
+}: {
+  pin: PoliticianPin;
+  icon: L.DivIcon;
+  vacant: boolean;
+  districtKey: string | null;
+  onHoverDistrict?: (key: string | null) => void;
+}) {
+  const eventHandlers = useMemo(
+    () => ({
+      // 모바일 ghost click — touchend 후 발생하는 click이 map으로 전파돼
+      // popup이 즉시 닫히는 현상 차단.
+      click: (e: L.LeafletMouseEvent) => {
+        L.DomEvent.stopPropagation(e.originalEvent);
+      },
+      mouseover: () => {
+        if (districtKey) onHoverDistrict?.(districtKey);
+      },
+      mouseout: () => {
+        if (districtKey) onHoverDistrict?.(null);
+      },
+    }),
+    [districtKey, onHoverDistrict],
+  );
+
+  return (
+    <Marker
+      position={[pin.lat, pin.lng]}
+      icon={icon}
+      eventHandlers={eventHandlers}
+    >
+      <Tooltip direction="top" offset={[0, -8]}>
+        <strong>{pin.name}</strong>
+        {vacant && <span style={{ color: "#a1a1aa" }}> · 현재 공석</span>}{" "}
+        · {pin.districtName}
+      </Tooltip>
+      <Popup
+        // closeOnClick=true(기본)면 map click 때 닫힘. ghost click과 충돌.
+        // 닫기는 ✕ 버튼이나 다른 핀 탭(autoClose=true 기본)으로만.
+        closeOnClick={false}
+        autoClose={true}
+      >
+        <PoliticianCard pin={pin} />
+      </Popup>
+    </Marker>
   );
 }
