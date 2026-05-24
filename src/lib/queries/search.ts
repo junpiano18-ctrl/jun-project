@@ -43,6 +43,33 @@ type DongEntry = {
   districtName: string | null;
 };
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// 구/시/군 검색에서 선거구별 1건씩 라운드로빈으로 다양화.
+// "마포구" → 갑·을, "고양시" → 갑·을·병·정 균등 노출. districtName null도 별도 버킷.
+function diversifyByDistrict(entries: DongEntry[], cap: number): DongEntry[] {
+  if (entries.length <= cap) return entries;
+  const buckets = new Map<string, DongEntry[]>();
+  for (const e of entries) {
+    const key = e.districtName ?? "_null";
+    const arr = buckets.get(key) ?? [];
+    arr.push(e);
+    buckets.set(key, arr);
+  }
+  const queues = [...buckets.values()];
+  const out: DongEntry[] = [];
+  while (out.length < cap && queues.some((q) => q.length > 0)) {
+    for (const q of queues) {
+      if (q.length === 0) continue;
+      out.push(q.shift()!);
+      if (out.length >= cap) break;
+    }
+  }
+  return out;
+}
+
 // 법안명 키워드 검색. take 6개로 제한. 22대 한정.
 export async function searchBillsByKeyword(q: string): Promise<SearchBillResult[]> {
   const query = q.trim();
@@ -131,16 +158,41 @@ export async function searchByRegion(q: string): Promise<SearchRegionResult[]> {
 
   const entries = dongMapping as DongEntry[];
 
-  // 정확도 우선: dongName 정확 일치 > dongName 부분 일치 > adm_nm/sggnm 부분 일치.
+  // "성산동"처럼 동/읍/면 suffix로 끝나는 query는 숫자로 분할된 동도 함께 매칭
+  // (예: "성산동" → "성산1동"·"성산2동"·"성산제1동"). placeholder가 "XX동" 형태라 사용자가
+  // 그대로 따라 입력하는 케이스가 빈 결과를 내던 버그 보정.
+  const suffix = query.slice(-1);
+  const numberedDongPattern =
+    query.length >= 2 && (suffix === "동" || suffix === "읍" || suffix === "면")
+      ? new RegExp(`^${escapeRegExp(query.slice(0, -1))}(제)?\\d+${suffix}$`)
+      : null;
+
+  // "마포구"·"고양시"·"양평군" — sggnm 매칭. 행정구 분할된 시("고양시" → "고양시덕양구" 등)는
+  // startsWith로 흡수. sgg 검색은 한도를 8로 늘리고 선거구별 라운드로빈으로 갑/을/병/정을 골고루 노출.
+  const isSggQuery =
+    query.length >= 2 && (suffix === "구" || suffix === "시" || suffix === "군");
+
+  // 정확도 우선: 정확 일치 > 숫자 분할 동 > dongName 부분 일치 > sgg 매칭 > adm_nm/sggnm 부분 일치.
   const exact: DongEntry[] = [];
+  const numbered: DongEntry[] = [];
   const startsWith: DongEntry[] = [];
+  const sggMatch: DongEntry[] = [];
   const contains: DongEntry[] = [];
   for (const e of entries) {
     if (e.dongName === query) exact.push(e);
+    else if (numberedDongPattern && numberedDongPattern.test(e.dongName)) numbered.push(e);
     else if (e.dongName.startsWith(query)) startsWith.push(e);
+    else if (isSggQuery && (e.sggnm === query || e.sggnm.startsWith(query))) sggMatch.push(e);
     else if (e.adm_nm.includes(query) || e.sggnm.includes(query)) contains.push(e);
   }
-  const picked = [...exact, ...startsWith, ...contains].slice(0, 5);
+  const cap = isSggQuery && sggMatch.length > 0 ? 8 : 5;
+  const picked = [
+    ...exact,
+    ...numbered,
+    ...startsWith,
+    ...diversifyByDistrict(sggMatch, cap),
+    ...contains,
+  ].slice(0, cap);
   if (!picked.length) return [];
 
   // 매칭된 District.name 모아서 한 번에 의원 조회.
