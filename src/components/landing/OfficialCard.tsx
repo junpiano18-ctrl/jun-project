@@ -138,6 +138,22 @@ export function OfficialCard({ official }: { official: OfficialWithActivity }) {
         </p>
       )}
 
+      {official.pledgeCount > 0 && (
+        <Link
+          href={`/politicians/${official.routeId}#pledges`}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+        >
+          <span aria-hidden>📋</span>
+          <span>
+            공약{" "}
+            <span className="font-medium text-zinc-800 dark:text-zinc-100">
+              {official.pledgeCount}개
+            </span>{" "}
+            등록됨
+          </span>
+        </Link>
+      )}
+
       <div className="mt-4 flex items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
         <Link
           href={`/politicians/${official.routeId}`}

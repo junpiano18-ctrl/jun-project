@@ -32,8 +32,8 @@ export function PledgeCard({ pledge }: { pledge: Pledge }) {
         <h3 className="text-sm font-semibold">{pledge.title}</h3>
       </div>
 
-      {/* 1. 원문 — 항상 표시 */}
-      <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
+      {/* 1. 원문 — 항상 표시. 선관위 본문은 □ 목표 / □ 이행방법 등 줄바꿈이 의미 있어 pre-line으로. */}
+      <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
         {pledge.originalText}
       </p>
       <p className="mt-1.5 text-[11px] text-zinc-400">

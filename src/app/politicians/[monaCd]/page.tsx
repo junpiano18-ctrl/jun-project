@@ -412,7 +412,7 @@ export default async function PoliticianPage({
           </Card>
 
           {showPledges && (
-            <Card title="선거 공약">
+            <Card title="선거 공약" id="pledges">
               <ul className="space-y-3">
                 {pledges.map((p) => (
                   <PledgeCard
@@ -458,12 +458,18 @@ export default async function PoliticianPage({
 function Card({
   title,
   children,
+  id,
 }: {
   title: string;
   children: React.ReactNode;
+  id?: string;
 }) {
   return (
-    <section className="rounded-xl p-5" style={{ backgroundColor: "#1a1a1a" }}>
+    <section
+      id={id}
+      className="scroll-mt-6 rounded-xl p-5"
+      style={{ backgroundColor: "#1a1a1a" }}
+    >
       <h2 className="mb-3 text-sm font-semibold text-zinc-400">{title}</h2>
       {children}
     </section>

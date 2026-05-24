@@ -16,8 +16,15 @@ import {
 } from "@/lib/map/layers";
 import type { PoliticianPin } from "@/lib/queries/politician-pins";
 
-const CENTER: [number, number] = [36.3, 127.8];
+const CENTER: [number, number] = [36.5, 127.8];
 const INITIAL_ZOOM = 7;
+
+// 지도 이동 범위 — 마라도(33.1°N)~백령도(38.0°N) + 독도(131.9°E) 포함 + 여유.
+// 일본/중국 대륙은 maxBounds 밖이라 panning으로 못 따라감.
+const KOREA_BOUNDS: [[number, number], [number, number]] = [
+  [32.0, 123.5], // 남서 모서리
+  [39.5, 132.5], // 북동 모서리
+];
 
 // VWorld(국토교통부 공간정보오픈플랫폼) 키가 있으면 한국어 라벨 + 동해 표기 보장 타일,
 // 없으면 OSM 기본 타일로 자동 fallback. SeaLabels 오버레이가 어느 쪽에서도 동해/독도 표기를 추가 보장.
@@ -78,6 +85,9 @@ export default function KoreaMap({ pins, proportionalTotal }: Props) {
         zoom={INITIAL_ZOOM}
         minZoom={6}
         maxZoom={18}
+        maxBounds={KOREA_BOUNDS}
+        maxBoundsViscosity={1.0} // 1.0 = 경계 hard stop, 0 = soft. 1.0이라 KOREA_BOUNDS 밖으로 드래그 불가.
+        bounceAtZoomLimits
         scrollWheelZoom
         style={{ height: "100%", width: "100%" }}
       >

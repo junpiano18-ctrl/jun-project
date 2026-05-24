@@ -29,6 +29,7 @@ export type OfficialWithActivity = ElectedOfficial & {
   activities: OfficialActivity[]; // 최근순, 최대 ACTIVITY_LIMIT개
   assetTotalKrw: number | null; // 천원 단위 (BigInt → number)
   assetYear: number | null;
+  pledgeCount: number; // 이 정치인의 등록된 공약 수 (모든 임기 합계). 0이면 카드에서 숨김.
 };
 
 export type RegionFeed = {
@@ -63,7 +64,7 @@ export async function getRegionFeed(admCd: string): Promise<RegionFeed | null> {
   const polIds = [...new Set(polIdByRouteId.values())];
   const perPolitician = await Promise.all(
     polIds.map(async (pid) => {
-      const [bills, votes, asset] = await Promise.all([
+      const [bills, votes, asset, pledgeCount] = await Promise.all([
         prisma.bill.findMany({
           where: { politicianId: pid, proposedAt: { not: null } },
           orderBy: { proposedAt: "desc" },
@@ -78,8 +79,12 @@ export async function getRegionFeed(admCd: string): Promise<RegionFeed | null> {
           where: { politicianId: pid },
           orderBy: { year: "desc" },
         }),
+        // 공약은 PoliticianTerm 단위로 묶여 있으므로 nested where로 카운트.
+        prisma.pledge.count({
+          where: { politicianTerm: { politicianId: pid } },
+        }),
       ]);
-      return { pid, bills, votes, asset };
+      return { pid, bills, votes, asset, pledgeCount };
     }),
   );
   const dataByPolId = new Map(perPolitician.map((d) => [d.pid, d]));
@@ -122,6 +127,7 @@ export async function getRegionFeed(admCd: string): Promise<RegionFeed | null> {
       activities: activities.slice(0, ACTIVITY_LIMIT),
       assetTotalKrw: data?.asset ? Number(data.asset.totalKrw) : null,
       assetYear: data?.asset?.year ?? null,
+      pledgeCount: data?.pledgeCount ?? 0,
     };
   });
 

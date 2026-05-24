@@ -215,16 +215,19 @@ model PoliticianTerm {
 model Pledge {
   id               String    @id @default(cuid())
   politicianTermId String
-  category         String?
-  title            String
-  originalText     String
-  easySummary      String? // Claude API로 생성한 중학생 눈높이 요약
+  ordNum           Int       @default(0) // 선관위 공약 순번 (prmsOrd, 1~10). 정렬 안정성용.
+  category         String?   // prmsRealmName — 후보별로 비어있는 경우 多
+  title            String    // prmsTitle
+  originalText     String    // 본문 원문 (prmmCont). 절대 수정 금지.
+  easySummary      String?   // Claude API로 생성한 중학생 눈높이 요약
   summaryModel     String?
   summaryUpdatedAt DateTime?
-  status           String?
+  status           String?   // 레거시 — 이행/미이행 판단 사용 안 함 (정책상 null 유지)
+  source           String    @default("중앙선거관리위원회")
 
   politicianTerm PoliticianTerm @relation(fields: [politicianTermId], references: [id])
 
+  @@unique([politicianTermId, ordNum])
   @@index([politicianTermId])
 }
 
