@@ -5,9 +5,7 @@ import { TodayFeed } from "@/components/landing/TodayFeed";
 import { getHomeFeed } from "@/lib/queries/home-feed";
 import { getTodaySchedule } from "@/lib/sources/assembly-schedule";
 
-// ISR — 30분마다 백그라운드 재생성. 매일 새 데이터(법안·표결·재산)면 충분.
-// 일정 API는 외부 호출이라 캐싱 효과 큼.
-export const revalidate = 1800;
+export const dynamic = "force-dynamic";
 
 export default async function LandingPage() {
   const [feed, schedule] = await Promise.all([
