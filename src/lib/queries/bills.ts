@@ -95,7 +95,7 @@ export async function listBills(opts: {
 }
 
 export type PartyTally = {
-  partyId: string | null; // 무소속(party row 없음)이면 null — UI에서 drilldown filter용
+  partyId: string | null;
   partyName: string;
   partyColor: string;
   agree: number;
@@ -123,17 +123,13 @@ export type BillDetail = {
   partyTallies: PartyTally[];
 };
 
-// "(박용갑의원 등 12인)" / "(국토교통위원장)" / "(대안)" 패턴에서 첫 발의자 이름 추출.
 function extractProposerName(billName: string): string | null {
-  // 의원 본인 발의: "(○○○의원 등 N인)" 또는 "(○○○의원 등)"
   const m = billName.match(/\(([가-힣]{2,4})의원\s*등/);
   if (m) return m[1];
   return null;
 }
 
 export async function getBillDetail(billId: string): Promise<BillDetail | null> {
-  // PlenaryBill에 없는 발의 법안(본회의 처리 전)도 상세 페이지에서 보여줘야 함.
-  // 둘 다 없으면 진짜 404.
   const [plenary, billRow] = await Promise.all([
     prisma.plenaryBill.findUnique({ where: { billId } }),
     prisma.bill.findUnique({
@@ -155,7 +151,6 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
   ]);
   if (!plenary && !billRow) return null;
 
-  // 발의자 — Bill 테이블에서 매칭 시도. 안 되면 PlenaryBill billName 파싱.
   let proposer: BillDetail["proposer"] = null;
   if (billRow) {
     const term = billRow.politician.terms[0];
@@ -188,52 +183,20 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
     }
   }
 
-  // 정당별 찬반 — VoteRecord JOIN PoliticianTerm (22대 NA만) JOIN Party
-  const partyRows: Array<{
-    partyId: string | null;
-    partyName: string;
-    partyColor: string;
-    result: "AGREE" | "DISAGREE" | "ABSTAIN" | "ABSENT";
-    cnt: bigint;
-  }> = await prisma.$queryRaw`
-    SELECT p."id" AS "partyId", p."name" AS "partyName", p."color" AS "partyColor", v."result", COUNT(*)::bigint AS cnt
-    FROM "VoteRecord" v
-    JOIN "PoliticianTerm" pt ON pt."politicianId" = v."politicianId"
-    JOIN "Term" t ON t."id" = pt."termId"
-    LEFT JOIN "Party" p ON p."id" = pt."partyId"
-    WHERE v."billId" = ${billId}
-      AND t."positionType" = 'NATIONAL_ASSEMBLY'
-      AND t."number" = 22
-    GROUP BY p."id", p."name", p."color", v."result"
-  `;
-  const tallyMap = new Map<string, PartyTally>();
-  for (const r of partyRows) {
-    const key = r.partyName ?? "무소속";
-    const color = r.partyColor ?? "#888888";
-    if (!tallyMap.has(key)) {
-      tallyMap.set(key, {
-        partyId: r.partyId,
-        partyName: key,
-        partyColor: color,
-        agree: 0,
-        disagree: 0,
-        abstain: 0,
-        absent: 0,
-        total: 0,
-      });
-    }
-    const t = tallyMap.get(key)!;
-    const n = Number(r.cnt);
-    if (r.result === "AGREE") t.agree += n;
-    else if (r.result === "DISAGREE") t.disagree += n;
-    else if (r.result === "ABSTAIN") t.abstain += n;
-    else if (r.result === "ABSENT") t.absent += n;
-    t.total += n;
-  }
-  const partyTallies = [...tallyMap.values()].sort((a, b) => b.total - a.total);
+  // VoteRecord 마이그레이션 전 임시 비활성화 — 마이그레이션 후 아래 주석 해제
+  // const partyRows = await prisma.$queryRaw`
+  //   SELECT p."id" AS "partyId", p."name" AS "partyName", p."color" AS "partyColor", v."result", COUNT(*)::bigint AS cnt
+  //   FROM "VoteRecord" v
+  //   JOIN "PoliticianTerm" pt ON pt."politicianId" = v."politicianId"
+  //   JOIN "Term" t ON t."id" = pt."termId"
+  //   LEFT JOIN "Party" p ON p."id" = pt."partyId"
+  //   WHERE v."billId" = ${billId}
+  //     AND t."positionType" = 'NATIONAL_ASSEMBLY'
+  //     AND t."number" = 22
+  //   GROUP BY p."id", p."name", p."color", v."result"
+  // `;
+  const partyTallies: PartyTally[] = [];
 
-  // PlenaryBill 우선 (표결 집계 + 요약 있음). 없으면 Bill 정보로만 채움.
-  // procDate는 PlenaryBill엔 본회의 처리일, Bill엔 proposedAt(발의일)로 대체.
   if (plenary) {
     return {
       billId: plenary.billId,
@@ -249,7 +212,6 @@ export async function getBillDetail(billId: string): Promise<BillDetail | null> 
       partyTallies,
     };
   }
-  // billRow은 위 if (!plenary && !billRow) 분기에서 null 걸러진 후라 여기선 non-null.
   return {
     billId: billRow!.billId,
     billName: billRow!.billName,
